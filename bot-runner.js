@@ -162,6 +162,21 @@ async function syncBots() {
   }
 }
 
+// ─── KEEP-ALIVE HTTP SERVER (required for Render) ─────────
+// Render expects a web server on a port — this satisfies that
+const http = require('http');
+const PORT = process.env.PORT || 4000;
+http.createServer((req, res) => {
+  res.writeHead(200);
+  res.end(JSON.stringify({
+    status: 'ok',
+    bots: runningBots.size,
+    uptime: process.uptime(),
+  }));
+}).listen(PORT, () => {
+  console.log(`🌐 Bot runner health check on port ${PORT}`);
+});
+
 // Initial sync + repeat every 30 seconds
 syncBots();
 setInterval(syncBots, 30_000);
