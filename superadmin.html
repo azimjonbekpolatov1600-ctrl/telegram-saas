@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Super Admin — Telegram Store SaaS</title>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Rubik',sans-serif;background:#0f0f1a;min-height:100vh;color:#e2e8f0}
+.topbar{background:#1a1a2e;padding:16px 28px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.06)}
+.topbar-logo{display:flex;align-items:center;gap:12px}
+.topbar-logo .icon{font-size:24px}
+.topbar-logo h1{font-size:18px;font-weight:800;color:#fff}
+.topbar-logo span{font-size:12px;background:#ef4444;color:#fff;border-radius:6px;padding:2px 8px;font-weight:700;margin-left:6px}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.admin-badge{background:rgba(67,97,238,0.2);color:#7c9eff;border-radius:8px;padding:6px 14px;font-size:13px;font-weight:600}
+.logout-btn{background:rgba(239,68,68,0.15);color:#f87171;border:none;border-radius:8px;padding:8px 14px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.main{padding:28px;max-width:1200px;margin:0 auto}
+
+/* Stats */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:28px}
+.stat{background:#1a1a2e;border-radius:14px;padding:20px;border:1px solid rgba(255,255,255,0.06)}
+.stat .label{font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+.stat .value{font-size:28px;font-weight:800;color:#fff}
+.stat .sub{font-size:12px;color:#475569;margin-top:3px}
+.stat.accent{background:linear-gradient(135deg,#4361ee,#7c3aed);border-color:transparent}
+.stat.accent .label,.stat.accent .sub{color:rgba(255,255,255,0.65)}
+
+/* Panel */
+.panel{background:#1a1a2e;border-radius:16px;padding:22px;border:1px solid rgba(255,255,255,0.06);margin-bottom:20px}
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.panel-title{font-size:16px;font-weight:700;color:#fff}
+.search-input{background:#0f0f1a;border:1.5px solid rgba(255,255,255,0.08);color:#e2e8f0;border-radius:9px;padding:9px 14px;font-size:14px;font-family:inherit;outline:none;width:220px}
+.search-input:focus{border-color:#4361ee}
+.search-input::placeholder{color:#475569}
+
+/* Table */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;padding:10px 12px;font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid rgba(255,255,255,0.06)}
+td{padding:13px 12px;border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:middle;color:#cbd5e1}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,0.02)}
+.owner-name{font-weight:700;color:#fff}
+.owner-email{font-size:12px;color:#64748b;margin-top:2px}
+.store-id{font-family:monospace;font-size:11px;color:#4361ee;background:rgba(67,97,238,0.1);padding:2px 7px;border-radius:4px}
+.tag{display:inline-flex;align-items:center;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:700}
+.tag-active{background:rgba(16,185,129,0.15);color:#10b981}
+.tag-inactive{background:rgba(239,68,68,0.15);color:#ef4444}
+.tag-trial{background:rgba(245,158,11,0.15);color:#f59e0b}
+.tag-paid{background:rgba(16,185,129,0.15);color:#10b981}
+.actions{display:flex;gap:6px}
+.btn{padding:7px 13px;border:none;border-radius:8px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:.2s}
+.btn:active{transform:scale(0.96)}
+.btn-activate{background:rgba(16,185,129,0.15);color:#10b981}
+.btn-activate:hover{background:rgba(16,185,129,0.25)}
+.btn-deactivate{background:rgba(239,68,68,0.15);color:#ef4444}
+.btn-deactivate:hover{background:rgba(239,68,68,0.25)}
+.btn-delete{background:rgba(100,116,139,0.15);color:#94a3b8}
+.btn-delete:hover{background:rgba(239,68,68,0.15);color:#ef4444}
+.btn-upgrade{background:rgba(67,97,238,0.15);color:#7c9eff}
+.btn-upgrade:hover{background:rgba(67,97,238,0.25)}
+.btn-primary{background:#4361ee;color:#fff}
+.btn-primary:hover{background:#3451d1}
+select.plan-select{background:#0f0f1a;border:1px solid rgba(255,255,255,0.1);color:#e2e8f0;border-radius:7px;padding:5px 8px;font-size:12px;font-family:inherit}
+
+/* Login gate */
+#login-gate{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.login-card{background:#1a1a2e;border-radius:20px;padding:36px;width:100%;max-width:380px;border:1px solid rgba(255,255,255,0.08);text-align:center}
+.login-card .icon{font-size:52px;display:block;margin-bottom:16px}
+.login-card h2{font-size:20px;font-weight:800;color:#fff;margin-bottom:6px}
+.login-card p{font-size:14px;color:#64748b;margin-bottom:24px}
+.login-card input{width:100%;background:#0f0f1a;border:1.5px solid rgba(255,255,255,0.08);color:#e2e8f0;border-radius:10px;padding:12px 14px;font-size:15px;font-family:inherit;outline:none;margin-bottom:10px}
+.login-card input:focus{border-color:#4361ee}
+.login-card .btn-primary{width:100%;padding:13px;font-size:15px;font-weight:700;border-radius:10px}
+.error-msg{color:#ef4444;font-size:13px;margin-top:8px;display:none}
+
+/* Toast */
+#toast{position:fixed;bottom:24px;right:24px;background:#fff;color:#1a1a2e;border-radius:10px;padding:12px 20px;font-size:14px;font-weight:600;z-index:999;opacity:0;transform:translateY(10px);transition:.25s;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,0.2)}
+#toast.show{opacity:1;transform:translateY(0)}
+
+#admin-content{display:none}
+</style>
+</head>
+<body>
+
+<!-- LOGIN GATE (shown if not authenticated as superadmin) -->
+<div id="login-gate">
+  <div class="login-card">
+    <span class="icon">🔐</span>
+    <h2>Super Admin</h2>
+    <p>Только для владельца платформы</p>
+    <input type="email" id="sa-email" placeholder="admin@yourstore.com" />
+    <input type="password" id="sa-pass" placeholder="••••••••" />
+    <button class="btn btn-primary" onclick="saLogin()">Войти</button>
+    <div class="error-msg" id="sa-error"></div>
+  </div>
+</div>
+
+<!-- ADMIN CONTENT (shown after login) -->
+<div id="admin-content">
+  <div class="topbar">
+    <div class="topbar-logo">
+      <span class="icon">🛍</span>
+      <h1>Telegram Store SaaS</h1>
+      <span>SUPER ADMIN</span>
+    </div>
+    <div class="topbar-right">
+      <span class="admin-badge">👑 Super Admin</span>
+      <button class="logout-btn" onclick="logout()">Выйти</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- STATS -->
+    <div class="stats-grid">
+      <div class="stat accent">
+        <div class="label">Всего магазинов</div>
+        <div class="value" id="s-total">—</div>
+        <div class="sub">зарегистрировано</div>
+      </div>
+      <div class="stat">
+        <div class="label">Активные</div>
+        <div class="value" id="s-active">—</div>
+        <div class="sub">работают сейчас</div>
+      </div>
+      <div class="stat">
+        <div class="label">Всего заказов</div>
+        <div class="value" id="s-orders">—</div>
+        <div class="sub">по всем магазинам</div>
+      </div>
+      <div class="stat">
+        <div class="label">Общая выручка</div>
+        <div class="value" id="s-revenue">—</div>
+        <div class="sub">по всем магазинам</div>
+      </div>
+    </div>
+
+    <!-- STORES TABLE -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">👥 Все магазины</span>
+        <input class="search-input" id="search" placeholder="🔍 Поиск по email..." oninput="filterTable()" />
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Владелец</th>
+            <th>Store ID</th>
+            <th>Зарегистрирован</th>
+            <th>Заказов</th>
+            <th>Товаров</th>
+            <th>Выручка</th>
+            <th>Тариф</th>
+            <th>Статус</th>
+            <th>Действия</th>
+          </tr></thead>
+          <tbody id="owners-tbody">
+            <tr><td colspan="9" style="text-align:center;padding:32px;color:#475569">Загрузка...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+let saToken  = localStorage.getItem('sa_token');
+let allOwners = [];
+
+// Check if already logged in as superadmin
+if (saToken) {
+  verifyAndShow();
+}
+
+async function saLogin() {
+  const email = document.getElementById('sa-email').value.trim();
+  const pass  = document.getElementById('sa-pass').value;
+  const err   = document.getElementById('sa-error');
+  err.style.display = 'none';
+
+  try {
+    const res  = await fetch('/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    if (data.owner.role !== 'superadmin') throw new Error('Нет доступа');
+    saToken = data.token;
+    localStorage.setItem('sa_token', saToken);
+    showAdminPanel();
+    loadData();
+  } catch (e) {
+    err.textContent = e.message;
+    err.style.display = 'block';
+  }
+}
+
+async function verifyAndShow() {
+  try {
+    const res = await fetch('/auth/me', { headers: { 'Authorization': `Bearer ${saToken}` } });
+    const me  = await res.json();
+    if (me.role !== 'superadmin') throw new Error();
+    showAdminPanel();
+    loadData();
+  } catch {
+    localStorage.removeItem('sa_token');
+    saToken = null;
+  }
+}
+
+function showAdminPanel() {
+  document.getElementById('login-gate').style.display    = 'none';
+  document.getElementById('admin-content').style.display = 'block';
+}
+
+async function api(method, path, body = null) {
+  const res = await fetch(path, {
+    method,
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${saToken}` },
+    body: body ? JSON.stringify(body) : null,
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Ошибка');
+  return data;
+}
+
+async function loadData() {
+  try {
+    const [stats, owners] = await Promise.all([
+      api('GET', '/superadmin/stats'),
+      api('GET', '/superadmin/owners'),
+    ]);
+    document.getElementById('s-total').textContent   = stats.totalStores;
+    document.getElementById('s-active').textContent  = stats.activeStores;
+    document.getElementById('s-orders').textContent  = stats.totalOrders;
+    document.getElementById('s-revenue').textContent = stats.totalRevenue.toLocaleString('ru-RU') + ' сум';
+    allOwners = owners;
+    renderTable(owners);
+  } catch (e) { toast('Ошибка: ' + e.message); }
+}
+
+function renderTable(owners) {
+  const tbody = document.getElementById('owners-tbody');
+  if (!owners.length) {
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:32px;color:#475569">Нет зарегистрированных магазинов</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = owners.map(o => `
+    <tr>
+      <td>
+        <div class="owner-name">${esc(o.name)}</div>
+        <div class="owner-email">${esc(o.email)}</div>
+      </td>
+      <td><span class="store-id">${o.id.slice(0,8)}...</span></td>
+      <td style="font-size:13px;color:#64748b">${new Date(o.createdAt).toLocaleDateString('ru-RU')}</td>
+      <td style="font-weight:700;color:#fff">${o.orderCount}</td>
+      <td>${o.productCount}</td>
+      <td style="font-weight:600;color:#10b981">${o.revenue.toLocaleString('ru-RU')}</td>
+      <td>
+        <select class="plan-select" onchange="changePlan('${o.id}', this.value)">
+          <option value="trial"     ${o.plan==='trial'     ?'selected':''}>🔄 Trial</option>
+          <option value="active"    ${o.plan==='active'    ?'selected':''}>✅ Active</option>
+          <option value="suspended" ${o.plan==='suspended' ?'selected':''}>⛔ Suspended</option>
+        </select>
+      </td>
+      <td><span class="tag ${o.active ? 'tag-active' : 'tag-inactive'}">${o.active ? '● Активен' : '● Отключён'}</span></td>
+      <td>
+        <div class="actions">
+          <button class="btn ${o.active ? 'btn-deactivate' : 'btn-activate'}" onclick="toggleOwner('${o.id}')">
+            ${o.active ? 'Отключить' : 'Включить'}
+          </button>
+          <a href="/store.html?owner=${o.id}" target="_blank" style="text-decoration:none">
+            <button class="btn btn-upgrade">Магазин</button>
+          </a>
+          <button class="btn btn-delete" onclick="deleteOwner('${o.id}', '${esc(o.name)}')">🗑</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+function filterTable() {
+  const q = document.getElementById('search').value.toLowerCase();
+  const filtered = allOwners.filter(o =>
+    o.email.toLowerCase().includes(q) || o.name.toLowerCase().includes(q)
+  );
+  renderTable(filtered);
+}
+
+async function toggleOwner(id) {
+  try {
+    const res = await api('PATCH', `/superadmin/owners/${id}/toggle`);
+    toast(res.active ? 'Магазин активирован ✓' : 'Магазин отключён');
+    loadData();
+  } catch (e) { toast('Ошибка: ' + e.message); }
+}
+
+async function changePlan(id, plan) {
+  try {
+    await api('PATCH', `/superadmin/owners/${id}/plan`, { plan });
+    toast(`Тариф изменён на "${plan}" ✓`);
+  } catch (e) { toast('Ошибка: ' + e.message); }
+}
+
+async function deleteOwner(id, name) {
+  if (!confirm(`Удалить магазин "${name}"? Это действие необратимо.`)) return;
+  try {
+    await api('DELETE', `/superadmin/owners/${id}`);
+    toast('Магазин удалён');
+    loadData();
+  } catch (e) { toast('Ошибка: ' + e.message); }
+}
+
+function logout() {
+  localStorage.removeItem('sa_token');
+  location.reload();
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+let toastTimer;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// Enter key on login
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !saToken) saLogin();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Telegram Store SaaS — Вход</title>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Rubik',sans-serif;background:#f0f4ff;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{background:#fff;border-radius:20px;padding:36px 32px;width:100%;max-width:420px;box-shadow:0 8px 40px rgba(0,0,0,0.10)}
+.logo{text-align:center;margin-bottom:28px}
+.logo .icon{font-size:48px;display:block;margin-bottom:8px}
+.logo h1{font-size:22px;font-weight:800;color:#1a1a2e}
+.logo p{font-size:14px;color:#888;margin-top:4px}
+.tabs{display:flex;background:#f4f4f5;border-radius:10px;padding:3px;margin-bottom:24px}
+.tab{flex:1;padding:9px;border:none;background:none;border-radius:8px;font-family:inherit;font-size:14px;font-weight:600;color:#888;cursor:pointer;transition:.2s}
+.tab.active{background:#fff;color:#1a1a2e;box-shadow:0 1px 4px rgba(0,0,0,0.10)}
+.form-group{margin-bottom:16px}
+label{display:block;font-size:13px;font-weight:600;color:#555;margin-bottom:6px}
+input{width:100%;padding:12px 14px;border:1.5px solid #e5e5e5;border-radius:10px;font-size:15px;font-family:inherit;transition:.2s;outline:none}
+input:focus{border-color:#4361ee}
+.btn{width:100%;padding:13px;background:#4361ee;color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;transition:.2s;margin-top:4px}
+.btn:hover{background:#3451d1}
+.btn:active{transform:scale(0.98)}
+.btn:disabled{background:#ccc;cursor:default}
+.error{color:#ef4444;font-size:13px;text-align:center;margin-top:10px;display:none}
+.success{color:#10b981;font-size:13px;text-align:center;margin-top:10px;display:none}
+.divider{text-align:center;color:#ccc;margin:16px 0;font-size:13px}
+.superadmin-link{text-align:center;margin-top:20px}
+.superadmin-link a{color:#888;font-size:13px;text-decoration:none}
+.superadmin-link a:hover{color:#4361ee}
+</style>
+</head>
+<body>
+<div class="card">
+  <!-- Language switcher -->
+  <div style="display:flex;justify-content:flex-end;margin-bottom:16px;gap:4px">
+    <button onclick="setAuthLang('ru')" id="al-ru" style="padding:4px 10px;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;background:#4361ee;color:#fff">RU</button>
+    <button onclick="setAuthLang('uz')" id="al-uz" style="padding:4px 10px;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;background:#e9e9eb;color:#888">UZ</button>
+    <button onclick="setAuthLang('en')" id="al-en" style="padding:4px 10px;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;background:#e9e9eb;color:#888">EN</button>
+  </div>
+  <div class="logo">
+    <span class="icon">🛍</span>
+    <h1>Telegram Store</h1>
+    <p id="auth-tagline">Платформа для вашего мини-магазина</p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" id="tab-login" onclick="showTab('login')" id="tab-login-btn">Войти</button>
+    <button class="tab" id="tab-register" onclick="showTab('register')" id="tab-reg-btn">Создать магазин</button>
+  </div>
+
+  <!-- LOGIN FORM -->
+  <div id="login-form">
+    <div class="form-group">
+      <label id="lbl-email">Email</label>
+      <input type="email" id="login-email" placeholder="your@email.com" />
+    </div>
+    <div class="form-group">
+      <label id="lbl-pass">Пароль</label>
+      <input type="password" id="login-pass" placeholder="••••••••" />
+    </div>
+    <button class="btn" id="login-btn" onclick="login()">Войти</button>
+    <div class="error" id="login-error"></div>
+  </div>
+
+  <!-- REGISTER FORM -->
+  <div id="register-form" style="display:none">
+    <div class="form-group">
+      <label id="lbl-shopname">Ваше имя / название магазина</label>
+      <input type="text" id="reg-name" placeholder="Alisher's Shop" />
+    </div>
+    <div class="form-group">
+      <label id="lbl-reg-email">Email</label>
+      <input type="email" id="reg-email" placeholder="your@email.com" />
+    </div>
+    <div class="form-group">
+      <label id="lbl-reg-pass">Пароль (минимум 6 символов)</label>
+      <input type="password" id="reg-pass" placeholder="••••••••" />
+    </div>
+    <button class="btn" id="reg-btn" onclick="register()">Создать магазин бесплатно</button>
+    <div class="error" id="reg-error"></div>
+    <div class="success" id="reg-success"></div>
+  </div>
+
+  <div class="superadmin-link">
+    <a href="/superadmin.html" id="sa-link">Вход для администратора платформы →</a>
+  </div>
+</div>
+
+<script>
+const AUTH_T = {
+  ru: { tagline:'Платформа для вашего мини-магазина', login:'Войти', register:'Создать магазин', password:'Пароль', shopName:'Ваше имя / название магазина', passHint:'Пароль (минимум 6 символов)', createBtn:'Создать магазин бесплатно', saLink:'Вход для администратора платформы →', loggingIn:'Входим...', creating:'Создаём магазин...' },
+  uz: { tagline:'Mini do\'koningiz uchun platforma', login:'Kirish', register:'Do\'kon yaratish', password:'Parol', shopName:'Ismingiz / do\'kon nomi', passHint:'Parol (kamida 6 ta belgi)', createBtn:'Bepul do\'kon yaratish', saLink:'Platforma administratori kirishi →', loggingIn:'Kirilmoqda...', creating:'Do\'kon yaratilmoqda...' },
+  en: { tagline:'Platform for your mini store', login:'Login', register:'Create Store', password:'Password', shopName:'Your name / store name', passHint:'Password (minimum 6 characters)', createBtn:'Create store for free', saLink:'Platform admin login →', loggingIn:'Logging in...', creating:'Creating store...' },
+};
+let authLang = localStorage.getItem('dashLang') || 'ru';
+function applyAuthLang() {
+  const t = AUTH_T[authLang];
+  document.getElementById('auth-tagline').textContent   = t.tagline;
+  document.getElementById('tab-login').textContent      = t.login;
+  document.getElementById('tab-register').textContent   = t.register;
+  document.getElementById('lbl-pass').textContent       = t.password;
+  document.getElementById('lbl-email').textContent      = 'Email';
+  document.getElementById('lbl-shopname').textContent   = t.shopName;
+  document.getElementById('lbl-reg-email').textContent  = 'Email';
+  document.getElementById('lbl-reg-pass').textContent   = t.passHint;
+  document.getElementById('login-btn').textContent      = t.login;
+  document.getElementById('reg-btn').textContent        = t.createBtn;
+  document.getElementById('sa-link').textContent        = t.saLink;
+  ['ru','uz','en'].forEach(l => {
+    const b = document.getElementById('al-' + l);
+    b.style.background = l === authLang ? '#4361ee' : '#e9e9eb';
+    b.style.color      = l === authLang ? '#fff' : '#888';
+  });
+}
+function setAuthLang(lang) {
+  authLang = lang;
+  localStorage.setItem('dashLang', lang);
+  applyAuthLang();
+}
+applyAuthLang();
+</script>
+
+<script>
+function showTab(tab) {
+  document.getElementById('login-form').style.display    = tab === 'login'    ? 'block' : 'none';
+  document.getElementById('register-form').style.display = tab === 'register' ? 'block' : 'none';
+  document.getElementById('tab-login').classList.toggle('active',    tab === 'login');
+  document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+}
+
+async function login() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  const err   = document.getElementById('login-error');
+  const btn   = document.getElementById('login-btn');
+  err.style.display = 'none';
+  btn.disabled = true; btn.textContent = AUTH_T[authLang].loggingIn;
+
+  try {
+    const res  = await fetch('/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('ownerRole', data.owner.role);
+    window.location.href = data.owner.role === 'superadmin' ? '/superadmin.html' : '/dashboard.html';
+  } catch (e) {
+    err.textContent = e.message; err.style.display = 'block';
+  } finally { btn.disabled = false; btn.textContent = AUTH_T[authLang].login; }
+}
+
+async function register() {
+  const name  = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pass  = document.getElementById('reg-pass').value;
+  const err   = document.getElementById('reg-error');
+  const suc   = document.getElementById('reg-success');
+  const btn   = document.getElementById('reg-btn');
+  err.style.display = 'none'; suc.style.display = 'none';
+  btn.disabled = true; btn.textContent = AUTH_T[authLang].creating;
+
+  try {
+    const res  = await fetch('/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, password: pass }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    localStorage.setItem('token', data.token);
+    window.location.href = '/dashboard.html';
+  } catch (e) {
+    err.textContent = e.message; err.style.display = 'block';
+  } finally { btn.disabled = false; btn.textContent = AUTH_T[authLang].createBtn; }
+}
+
+// Enter key support
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const activeTab = document.getElementById('tab-login').classList.contains('active');
+    if (activeTab) login(); else register();
+  }
+});
+
+// Redirect if already logged in
+const token = localStorage.getItem('token');
+if (token) window.location.href = '/dashboard.html';
+</script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+[
+  {
+    "id": "001",
+    "items": [
+      {
+        "productId": "6",
+        "name": "Наушники AirBuds X",
+        "price": 380000,
+        "quantity": 1,
+        "image": "https://placehold.co/400x400/1c7ed6/ffffff?text=🎧+Наушники"
+      }
+    ],
+    "total": 380000,
+    "customer": {
+      "id": "test_user",
+      "username": "test",
+      "firstName": "Тест"
+    },
+    "status": "new",
+    "createdAt": "2026-05-24T20:46:27.446Z",
+    "updatedAt": "2026-05-24T20:46:27.446Z"
+  }
+]

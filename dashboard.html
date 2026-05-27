@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Dashboard — Telegram Store</title>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Rubik',sans-serif;background:#f0f4ff;min-height:100vh;color:#1a1a2e}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#ddd;border-radius:99px}
+
+/* ── LAYOUT ── */
+.layout{display:flex;min-height:100vh}
+.sidebar{width:240px;background:#1a1a2e;flex-shrink:0;display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100}
+.main{margin-left:240px;flex:1;padding:28px;max-width:1100px}
+
+/* ── SIDEBAR ── */
+.sidebar-logo{padding:24px 20px 20px;border-bottom:1px solid rgba(255,255,255,0.08)}
+.sidebar-logo .icon{font-size:28px;display:block;margin-bottom:6px}
+.sidebar-logo h2{color:#fff;font-size:16px;font-weight:700}
+.sidebar-logo p{color:rgba(255,255,255,0.45);font-size:12px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+nav{flex:1;padding:12px 0}
+.nav-item{display:flex;align-items:center;gap:12px;padding:11px 20px;color:rgba(255,255,255,0.55);font-size:14px;font-weight:500;cursor:pointer;border-left:3px solid transparent;transition:.2s}
+.nav-item:hover{color:#fff;background:rgba(255,255,255,0.05)}
+.nav-item.active{color:#fff;background:rgba(67,97,238,0.25);border-left-color:#4361ee}
+.nav-item .icon{font-size:18px;width:22px;text-align:center}
+.sidebar-bottom{padding:16px 20px;border-top:1px solid rgba(255,255,255,0.08)}
+.store-link-box{background:rgba(255,255,255,0.06);border-radius:10px;padding:10px 12px;margin-bottom:10px}
+.store-link-box p{color:rgba(255,255,255,0.4);font-size:11px;margin-bottom:4px}
+.store-link-box a{color:#7c9eff;font-size:12px;word-break:break-all;text-decoration:none}
+.logout-btn{width:100%;background:rgba(239,68,68,0.15);color:#f87171;border:none;border-radius:8px;padding:9px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:.2s}
+.logout-btn:hover{background:rgba(239,68,68,0.25)}
+
+/* ── TOP BAR ── */
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+.topbar h1{font-size:22px;font-weight:800}
+.topbar .badge{background:#4361ee;color:#fff;border-radius:8px;padding:6px 14px;font-size:13px;font-weight:600}
+
+/* ── STAT CARDS ── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:28px}
+.stat-card{background:#fff;border-radius:14px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+.stat-card .label{font-size:12px;font-weight:600;color:#999;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.stat-card .value{font-size:26px;font-weight:800;color:#1a1a2e}
+.stat-card .sub{font-size:12px;color:#aaa;margin-top:2px}
+.stat-card.accent{background:#4361ee}
+.stat-card.accent .label,.stat-card.accent .value,.stat-card.accent .sub{color:#fff}
+.stat-card.accent .label{color:rgba(255,255,255,0.7)}
+.stat-card.accent .sub{color:rgba(255,255,255,0.6)}
+
+/* ── PANELS ── */
+.panel{background:#fff;border-radius:16px;padding:22px;box-shadow:0 2px 8px rgba(0,0,0,0.06);margin-bottom:20px}
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.panel-title{font-size:16px;font-weight:700}
+.page{display:none}.page.active{display:block}
+
+/* ── FORMS ── */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-group{margin-bottom:14px}
+.form-group.full{grid-column:1/-1}
+label{display:block;font-size:13px;font-weight:600;color:#555;margin-bottom:5px}
+input,textarea,select{width:100%;padding:10px 13px;border:1.5px solid #e5e5e5;border-radius:9px;font-size:14px;font-family:inherit;outline:none;transition:.2s;background:#fff;color:#1a1a2e}
+input:focus,textarea:focus,select:focus{border-color:#4361ee}
+textarea{resize:vertical;min-height:70px}
+
+/* ── BUTTONS ── */
+.btn{padding:10px 18px;border:none;border-radius:9px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:.2s}
+.btn:active{transform:scale(0.97)}
+.btn-primary{background:#4361ee;color:#fff}
+.btn-primary:hover{background:#3451d1}
+.btn-danger{background:#fee2e2;color:#dc2626}
+.btn-danger:hover{background:#fecaca}
+.btn-secondary{background:#f4f4f5;color:#1a1a2e}
+.btn-secondary:hover{background:#e9e9eb}
+.btn-success{background:#d1fae5;color:#065f46}
+.btn-sm{padding:6px 12px;font-size:12px;border-radius:7px}
+.btn:disabled{opacity:.5;cursor:default}
+
+/* ── TABLE ── */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+thead tr{border-bottom:2px solid #f0f0f0}
+th{text-align:left;padding:10px 12px;font-size:12px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.5px}
+td{padding:12px 12px;border-bottom:1px solid #f5f5f5;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafafa}
+.product-thumb{width:40px;height:40px;border-radius:8px;object-fit:cover;background:#f0f0f0}
+.tag{display:inline-flex;align-items:center;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:600}
+.tag-available{background:#d1fae5;color:#065f46}
+.tag-out{background:#fee2e2;color:#dc2626}
+.tag-new{background:#dbeafe;color:#1d4ed8}
+.tag-confirmed{background:#d1fae5;color:#065f46}
+.tag-delivered{background:#f3e8ff;color:#7e22ce}
+.tag-cancelled{background:#fee2e2;color:#991b1b}
+.actions{display:flex;gap:6px}
+
+/* ── MODAL ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:18px;padding:28px;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.modal h3{font-size:18px;font-weight:700;margin-bottom:20px}
+.modal-actions{display:flex;gap:10px;margin-top:20px;justify-content:flex-end}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:24px;right:24px;background:#1a1a2e;color:#fff;border-radius:10px;padding:12px 20px;font-size:14px;font-weight:500;z-index:999;opacity:0;transform:translateY(10px);transition:.25s;pointer-events:none}
+#toast.show{opacity:1;transform:translateY(0)}
+
+/* ── BOT SETUP ── */
+.setup-step{display:flex;gap:14px;margin-bottom:16px;padding:16px;background:#f8f9ff;border-radius:12px;border-left:3px solid #4361ee}
+.step-num{width:28px;height:28px;background:#4361ee;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.step-text h4{font-size:14px;font-weight:600;margin-bottom:3px}
+.step-text p{font-size:13px;color:#666;line-height:1.5}
+.step-text code{background:#e8ebff;color:#4361ee;padding:1px 6px;border-radius:4px;font-size:12px}
+.copy-url-box{background:#f0f4ff;border:1.5px dashed #4361ee;border-radius:10px;padding:14px;margin:16px 0;word-break:break-all;font-size:13px;color:#4361ee;cursor:pointer;transition:.2s}
+.copy-url-box:hover{background:#e8edff}
+
+/* ── EMPTY STATE ── */
+.empty{text-align:center;padding:48px 20px;color:#aaa}
+.empty .icon{font-size:48px;margin-bottom:12px}
+.empty p{font-size:15px}
+
+/* ── LANGUAGE SWITCHER ── */
+.lang-switcher{display:flex;gap:3px;background:rgba(255,255,255,0.08);border-radius:8px;padding:3px}
+.lang-btn{padding:4px 9px;border:none;background:none;color:rgba(255,255,255,0.45);font-family:inherit;font-size:11px;font-weight:700;border-radius:5px;cursor:pointer;transition:.2s;letter-spacing:.3px}
+.lang-btn:hover{color:#fff}
+.lang-btn.active{background:rgba(255,255,255,0.15);color:#fff}
+
+/* ── MOBILE ── */
+@media(max-width:768px){
+  .sidebar{width:100%;height:auto;position:static;flex-direction:row;align-items:center;padding:0 16px}
+  .main{margin-left:0;padding:16px}
+  .sidebar-logo,.sidebar-bottom,.nav-item span{display:none}
+  nav{display:flex;flex-direction:row;padding:8px 0}
+  .nav-item{padding:10px;border-left:none;border-bottom:3px solid transparent}
+  .nav-item.active{border-bottom-color:#4361ee;background:transparent}
+  .form-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<!-- ── SIDEBAR ── -->
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <span class="icon">🛍</span>
+    <h2 id="sidebar-store-name">Мой магазин</h2>
+    <p id="sidebar-email">загрузка...</p>
+  </div>
+  <nav>
+    <div class="nav-item active" onclick="showPage('overview')"><span class="icon">📊</span><span data-i18n="navOverview">Обзор</span></div>
+    <div class="nav-item" onclick="showPage('products')"><span class="icon">📦</span><span data-i18n="navProducts">Товары</span></div>
+    <div class="nav-item" onclick="showPage('orders')"><span class="icon">🛒</span><span data-i18n="navOrders">Заказы</span></div>
+    <div class="nav-item" onclick="showPage('bot')"><span class="icon">🤖</span><span data-i18n="navBot">Бот</span></div>
+    <div class="nav-item" onclick="showPage('settings')"><span class="icon">⚙️</span><span data-i18n="navSettings">Настройки</span></div>
+  </nav>
+  <div class="sidebar-bottom">
+    <div class="lang-switcher" style="margin-bottom:10px">
+      <button class="lang-btn active" data-lang="ru" onclick="setDashLang('ru')">RU</button>
+      <button class="lang-btn" data-lang="uz" onclick="setDashLang('uz')">UZ</button>
+      <button class="lang-btn" data-lang="en" onclick="setDashLang('en')">EN</button>
+    </div>
+    <div class="store-link-box">
+      <p data-i18n="storeLink">Ссылка на магазин:</p>
+      <a id="store-link-display" href="#" target="_blank">загрузка...</a>
+    </div>
+    <button class="logout-btn" onclick="logout()">🚪 <span data-i18n="logout">Выйти</span></button>
+  </div>
+</div>
+
+<!-- ── MAIN ── -->
+<div class="main">
+
+  <!-- OVERVIEW PAGE -->
+  <div class="page active" id="page-overview">
+    <div class="topbar">
+      <h1 data-i18n="welcome">👋 Добро пожаловать!</h1>
+      <span class="badge" id="plan-badge">Trial</span>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card accent">
+        <div class="label" data-i18n="newOrders">Новые заказы</div>
+        <div class="value" id="stat-new">—</div>
+        <div class="sub" data-i18n="awaitingConfirm">ожидают подтверждения</div>
+      </div>
+      <div class="stat-card">
+        <div class="label" data-i18n="totalOrders">Всего заказов</div>
+        <div class="value" id="stat-total">—</div>
+        <div class="sub" data-i18n="allTime">за всё время</div>
+      </div>
+      <div class="stat-card">
+        <div class="label" data-i18n="todayOrders">Заказов сегодня</div>
+        <div class="value" id="stat-today">—</div>
+        <div class="sub" data-i18n="today">за сегодня</div>
+      </div>
+      <div class="stat-card">
+        <div class="label" data-i18n="revenue">Выручка</div>
+        <div class="value" id="stat-revenue">—</div>
+        <div class="sub" data-i18n="allConfirmed">все подтверждённые</div>
+      </div>
+      <div class="stat-card">
+        <div class="label" data-i18n="products">Товаров</div>
+        <div class="value" id="stat-products">—</div>
+        <div class="sub" id="stat-instock">— в наличии</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title" data-i18n="quickStart">🚀 Быстрый старт</span></div>
+      <div class="setup-step">
+        <div class="step-num">1</div>
+        <div class="step-text">
+          <h4 data-i18n="step1Title">Настройте Telegram бота</h4>
+          <p data-i18n="step1Sub">Перейдите на вкладку <strong>Бот</strong>, создайте бота через @BotFather и вставьте токен. Клиенты будут открывать ваш магазин через бота.</p>
+        </div>
+      </div>
+      <div class="setup-step">
+        <div class="step-num">2</div>
+        <div class="step-text">
+          <h4 data-i18n="step2Title">Добавьте свои товары</h4>
+          <p data-i18n="step2Sub">Перейдите на вкладку <strong>Товары</strong> и замените примеры реальными товарами с фотографиями и ценами.</p>
+        </div>
+      </div>
+      <div class="setup-step">
+        <div class="step-num">3</div>
+        <div class="step-text">
+          <h4 data-i18n="step3Title">Поделитесь ссылкой</h4>
+          <p data-i18n="step3Sub">Скопируйте ссылку на ваш магазин ниже и отправьте клиентам. Или настройте бота — он будет открывать магазин кнопкой.</p>
+        </div>
+      </div>
+      <div class="copy-url-box" id="copy-store-url" onclick="copyStoreUrl()">
+        🔗 <span data-i18n="copyLink">Нажмите чтобы скопировать ссылку на ваш магазин</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRODUCTS PAGE -->
+  <div class="page" id="page-products">
+    <div class="topbar">
+      <h1 data-i18n="navProducts">📦 Товары</h1>
+      <button class="btn btn-primary" onclick="openAddModal()" data-i18n="addProduct">+ Добавить товар</button>
+    </div>
+    <div class="panel">
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th data-i18n="photo">Фото</th>
+            <th data-i18n="name">Название</th>
+            <th data-i18n="category">Категория</th>
+            <th data-i18n="price">Цена</th>
+            <th data-i18n="status">Статус</th>
+            <th data-i18n="actions">Действия</th>
+          </tr></thead>
+          <tbody id="products-tbody">
+            <tr><td colspan="6" style="text-align:center;padding:32px;color:#aaa" data-i18n="loading">Загрузка...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ORDERS PAGE -->
+  <div class="page" id="page-orders">
+    <div class="topbar">
+      <h1 data-i18n="navOrders">🛒 Заказы</h1>
+      <select id="order-filter" onchange="loadOrders()" style="width:auto;padding:8px 12px;border-radius:8px">
+        <option value="" data-i18n="allStatuses">Все статусы</option>
+        <option value="new" data-i18n="statusNew">Новые</option>
+        <option value="confirmed" data-i18n="statusConfirmed">Подтверждённые</option>
+        <option value="delivered" data-i18n="statusDelivered">Доставленные</option>
+        <option value="cancelled" data-i18n="statusCancelled">Отменённые</option>
+      </select>
+    </div>
+    <div class="panel">
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>#</th>
+            <th data-i18n="customer">Покупатель</th>
+            <th data-i18n="items">Товары</th>
+            <th data-i18n="amount">Сумма</th>
+            <th data-i18n="date">Дата</th>
+            <th data-i18n="status">Статус</th>
+          </tr></thead>
+          <tbody id="orders-tbody">
+            <tr><td colspan="6" style="text-align:center;padding:32px;color:#aaa" data-i18n="loading">Загрузка...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOT PAGE -->
+  <div class="page" id="page-bot">
+    <div class="topbar"><h1 data-i18n="botSetup">🤖 Настройка бота</h1></div>
+    <div class="panel">
+      <div class="setup-step">
+        <div class="step-num">1</div>
+        <div class="step-text">
+          <h4 data-i18n="botStep1Title">Создайте бота в @BotFather</h4>
+          <p data-i18n="botStep1Sub">Откройте Telegram → найдите <code>@BotFather</code> → отправьте <code>/newbot</code> → введите имя и username (должен заканчиваться на <code>_bot</code>) → скопируйте токен.</p>
+        </div>
+      </div>
+      <div class="setup-step">
+        <div class="step-num">2</div>
+        <div class="step-text">
+          <h4 data-i18n="botStep2Title">Узнайте ваш Chat ID</h4>
+          <p data-i18n="botStep2Sub">Откройте Telegram → найдите <code>@userinfobot</code> → отправьте любое сообщение → скопируйте ваш ID (число).</p>
+        </div>
+      </div>
+      <div class="setup-step">
+        <div class="step-num">3</div>
+        <div class="step-text">
+          <h4 data-i18n="botStep3Title">Вставьте данные ниже</h4>
+          <p data-i18n="botStep3Sub">После сохранения бот автоматически запустится и начнёт принимать заказы.</p>
+        </div>
+      </div>
+      <div class="form-group">
+        <label data-i18n="botToken">Bot Token (из @BotFather)</label>
+        <input type="password" id="bot-token" placeholder="1234567890:AABBCCddEEff..." />
+      </div>
+      <div class="form-group">
+        <label data-i18n="chatId">Ваш Telegram Chat ID (из @userinfobot)</label>
+        <input type="text" id="bot-chat-id" placeholder="987654321" />
+      </div>
+      <div class="form-group">
+        <label data-i18n="storeUrl">URL магазина (для кнопки в боте)</label>
+        <input type="text" id="bot-store-url" placeholder="https://yourserver.com/store.html?owner=..." readonly style="background:#f5f5f5;color:#666"/>
+      </div>
+      <button class="btn btn-primary" onclick="saveBotSettings()" data-i18n="saveBotBtn">💾 Сохранить и запустить бота</button>
+    </div>
+  </div>
+
+  <!-- SETTINGS PAGE -->
+  <div class="page" id="page-settings">
+    <div class="topbar"><h1 data-i18n="navSettings">⚙️ Настройки магазина</h1></div>
+    <div class="panel">
+      <div class="form-group">
+        <label data-i18n="storeName">Название магазина</label>
+        <input type="text" id="s-store-name" placeholder="Мой магазин" />
+      </div>
+      <div class="form-group">
+        <label data-i18n="currency">Валюта</label>
+        <input type="text" id="s-currency" placeholder="сум" />
+      </div>
+      <div class="form-group">
+        <label data-i18n="defaultLang">Язык магазина по умолчанию</label>
+        <select id="s-lang" style="width:100%;padding:10px 13px;border:1.5px solid #e5e5e5;border-radius:9px;font-size:14px;font-family:inherit;outline:none;background:#fff">
+          <option value="ru">🇷🇺 Русский (RU)</option>
+          <option value="uz">🇺🇿 O'zbek (UZ)</option>
+          <option value="en">🇬🇧 English (EN)</option>
+        </select>
+        <p style="font-size:12px;color:#aaa;margin-top:5px" data-i18n="defaultLangHint">Клиенты увидят магазин на этом языке по умолчанию.</p>
+      </div>
+      <button class="btn btn-primary" onclick="saveStoreSettings()" data-i18n="save">💾 Сохранить</button>
+    </div>
+    <div class="panel" style="border:2px solid #fee2e2">
+      <div class="panel-header"><span class="panel-title" style="color:#dc2626" data-i18n="account">⚠️ Аккаунт</span></div>
+      <p style="font-size:14px;color:#666;margin-bottom:16px" data-i18n="changePassSub">Смените пароль от вашего аккаунта.</p>
+      <div class="form-group">
+        <label data-i18n="newPassword">Новый пароль</label>
+        <input type="password" id="new-password" data-i18n-placeholder="minChars" placeholder="минимум 6 символов" />
+      </div>
+      <button class="btn btn-danger" onclick="changePassword()" data-i18n="changePass">🔑 Сменить пароль</button>
+    </div>
+  </div>
+
+</div><!-- /main -->
+</div><!-- /layout -->
+
+<!-- ── PRODUCT MODAL ── -->
+<div class="modal-bg" id="product-modal">
+  <div class="modal">
+    <h3 id="modal-title" data-i18n="addProduct">Добавить товар</h3>
+    <input type="hidden" id="edit-product-id" />
+    <div class="form-grid">
+      <div class="form-group full">
+        <label data-i18n="nameRequired">Название *</label>
+        <input type="text" id="m-name" data-i18n-placeholder="namePh" placeholder="Футболка Classic" />
+      </div>
+      <div class="form-group">
+        <label data-i18n="priceRequired">Цена *</label>
+        <input type="number" id="m-price" placeholder="89000" />
+      </div>
+      <div class="form-group">
+        <label data-i18n="categoryRequired">Категория *</label>
+        <input type="text" id="m-category" data-i18n-placeholder="categoryPh" placeholder="Одежда" />
+      </div>
+      <div class="form-group full">
+        <label data-i18n="description">Описание</label>
+        <textarea id="m-desc" data-i18n-placeholder="descPh" placeholder="Краткое описание..."></textarea>
+      </div>
+      <div class="form-group full">
+        <label data-i18n="photoUrl">URL фотографии</label>
+        <input type="text" id="m-image" placeholder="https://example.com/photo.jpg" />
+      </div>
+      <div class="form-group">
+        <label data-i18n="status">Статус</label>
+        <select id="m-available">
+          <option value="true" data-i18n="inStock">✅ В наличии</option>
+          <option value="false" data-i18n="outOfStock">❌ Нет в наличии</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()" data-i18n="cancel">Отмена</button>
+      <button class="btn btn-danger btn-sm" id="delete-btn" onclick="deleteProduct()" style="display:none" data-i18n="delete">🗑 Удалить</button>
+      <button class="btn btn-primary" onclick="saveProduct()" data-i18n="save">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── ORDER DETAIL MODAL ── -->
+<div class="modal-bg" id="order-modal">
+  <div class="modal">
+    <h3 id="order-modal-title">---</h3>
+    <div id="order-modal-body"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeOrderModal()" data-i18n="close">Закрыть</button>
+      <button class="btn btn-success btn-sm" id="confirm-order-btn" onclick="updateOrderStatus('confirmed')" data-i18n="confirm">✅ Подтвердить</button>
+      <button class="btn btn-danger btn-sm" id="cancel-order-btn" onclick="updateOrderStatus('cancelled')" data-i18n="cancelOrder">❌ Отменить</button>
+      <button class="btn btn-primary btn-sm" id="deliver-order-btn" onclick="updateOrderStatus('delivered')" data-i18n="delivered">📦 Доставлен</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── i18n ───────────────────────────────────────────────────
+const DASH_T = {
+  ru: {
+    navOverview:'Обзор', navProducts:'Товары', navOrders:'Заказы', navBot:'Бот', navSettings:'Настройки',
+    storeLink:'Ссылка на магазин:', logout:'Выйти',
+    welcome:'👋 Добро пожаловать!', newOrders:'Новые заказы', awaitingConfirm:'ожидают подтверждения',
+    totalOrders:'Всего заказов', allTime:'за всё время', todayOrders:'Заказов сегодня',
+    today:'за сегодня', revenue:'Выручка', allConfirmed:'все подтверждённые',
+    products:'Товаров', inStockSub:'в наличии', quickStart:'🚀 Быстрый старт',
+    step1Title:'Настройте Telegram бота', step1Sub:'Перейдите на вкладку Бот, создайте бота через @BotFather и вставьте токен.',
+    step2Title:'Добавьте свои товары', step2Sub:'Перейдите на вкладку Товары и замените примеры реальными товарами.',
+    step3Title:'Поделитесь ссылкой', step3Sub:'Скопируйте ссылку на ваш магазин ниже и отправьте клиентам.',
+    copyLink:'Нажмите чтобы скопировать ссылку на ваш магазин',
+    addProduct:'Добавить товар', editProduct:'Редактировать товар',
+    photo:'Фото', name:'Название', category:'Категория', price:'Цена', status:'Статус', actions:'Действия',
+    loading:'Загрузка...', noProducts:'Нет товаров. Нажмите "Добавить товар".',
+    customer:'Покупатель', items:'Товары', amount:'Сумма', date:'Дата',
+    allStatuses:'Все статусы', statusNew:'Новые', statusConfirmed:'Подтверждённые',
+    statusDelivered:'Доставленные', statusCancelled:'Отменённые', noOrders:'Заказов пока нет',
+    orderLabel:'Заказ', totalLabel:'Итого',
+    botSetup:'🤖 Настройка бота',
+    botStep1Title:'Создайте бота в @BotFather', botStep1Sub:'Откройте Telegram → @BotFather → /newbot → скопируйте токен.',
+    botStep2Title:'Узнайте ваш Chat ID', botStep2Sub:'Откройте @userinfobot → отправьте сообщение → скопируйте ID.',
+    botStep3Title:'Вставьте данные ниже', botStep3Sub:'После сохранения бот запустится автоматически.',
+    botToken:'Bot Token (из @BotFather)', chatId:'Ваш Telegram Chat ID', storeUrl:'URL магазина',
+    saveBotBtn:'💾 Сохранить и запустить бота', botSaved:'Бот настроен! Запустите bot-runner.js ✓',
+    storeName:'Название магазина', currency:'Валюта',
+    defaultLang:'Язык магазина по умолчанию', defaultLangHint:'Клиенты увидят магазин на этом языке по умолчанию.',
+    save:'💾 Сохранить', account:'⚠️ Аккаунт', changePassSub:'Смените пароль от вашего аккаунта.',
+    newPassword:'Новый пароль', minChars:'минимум 6 символов', changePass:'🔑 Сменить пароль',
+    nameRequired:'Название *', priceRequired:'Цена *', categoryRequired:'Категория *',
+    description:'Описание', photoUrl:'URL фотографии',
+    namePh:'Футболка Classic', categoryPh:'Одежда', descPh:'Краткое описание...',
+    inStock:'✅ В наличии', outOfStock:'❌ Нет в наличии',
+    cancel:'Отмена', delete:'🗑 Удалить', close:'Закрыть',
+    confirm:'✅ Подтвердить', cancelOrder:'❌ Отменить', delivered:'📦 Доставлен',
+    fillRequired:'Заполните обязательные поля', productAdded:'Товар добавлен ✓',
+    productUpdated:'Товар обновлён ✓', productDeleted:'Товар удалён',
+    confirmDelete:'Удалить этот товар?', settingsSaved:'Настройки сохранены ✓',
+    statusUpdated:'Статус обновлён ✓', error:'Ошибка', linkCopied:'Ссылка скопирована ✓',
+    hideBtn:'Скрыть', showBtn:'Показать',
+  },
+  uz: {
+    navOverview:'Umumiy', navProducts:'Mahsulotlar', navOrders:'Buyurtmalar', navBot:'Bot', navSettings:'Sozlamalar',
+    storeLink:'Do\'kon havolasi:', logout:'Chiqish',
+    welcome:'👋 Xush kelibsiz!', newOrders:'Yangi buyurtmalar', awaitingConfirm:'tasdiqlash kutilmoqda',
+    totalOrders:'Jami buyurtmalar', allTime:'barcha vaqt', todayOrders:'Bugungi buyurtmalar',
+    today:'bugun', revenue:'Daromad', allConfirmed:'tasdiqlangan barcha',
+    products:'Mahsulotlar', inStockSub:'mavjud', quickStart:'🚀 Tezkor boshlash',
+    step1Title:'Telegram botini sozlang', step1Sub:'Bot bo\'limiga o\'ting, @BotFather orqali bot yarating va tokenni joylashtiring.',
+    step2Title:'Mahsulotlaringizni qo\'shing', step2Sub:'Mahsulotlar bo\'limiga o\'ting va namunalarni haqiqiy mahsulotlar bilan almashtiring.',
+    step3Title:'Havolani ulashing', step3Sub:'Do\'kon havolasini nusxa oling va mijozlarga yuboring.',
+    copyLink:'Do\'kon havolasini nusxa olish uchun bosing',
+    addProduct:'Mahsulot qo\'shish', editProduct:'Mahsulotni tahrirlash',
+    photo:'Rasm', name:'Nomi', category:'Kategoriya', price:'Narxi', status:'Holat', actions:'Amallar',
+    loading:'Yuklanmoqda...', noProducts:'Mahsulot yo\'q. "Mahsulot qo\'shish" tugmasini bosing.',
+    customer:'Xaridor', items:'Mahsulotlar', amount:'Summa', date:'Sana',
+    allStatuses:'Barcha holatlar', statusNew:'Yangi', statusConfirmed:'Tasdiqlangan',
+    statusDelivered:'Yetkazilgan', statusCancelled:'Bekor qilingan', noOrders:'Hali buyurtmalar yo\'q',
+    orderLabel:'Buyurtma', totalLabel:'Jami',
+    botSetup:'🤖 Bot sozlamalari',
+    botStep1Title:'@BotFather\'da bot yarating', botStep1Sub:'Telegram → @BotFather → /newbot → tokenni nusxa oling.',
+    botStep2Title:'Chat ID\'ingizni bilib oling', botStep2Sub:'@userinfobot → xabar yuboring → ID\'ni nusxa oling.',
+    botStep3Title:'Ma\'lumotlarni quyida kiriting', botStep3Sub:'Saqlagandan so\'ng bot avtomatik ishga tushadi.',
+    botToken:'Bot Token (@BotFather\'dan)', chatId:'Telegram Chat ID\'ingiz', storeUrl:'Do\'kon URL\'i',
+    saveBotBtn:'💾 Saqlash va botni ishga tushirish', botSaved:'Bot sozlandi! bot-runner.js ni ishga tushiring ✓',
+    storeName:'Do\'kon nomi', currency:'Valyuta',
+    defaultLang:'Do\'konning standart tili', defaultLangHint:'Mijozlar do\'konni shu tilda ko\'radi.',
+    save:'💾 Saqlash', account:'⚠️ Hisob', changePassSub:'Hisob parolingizni o\'zgartiring.',
+    newPassword:'Yangi parol', minChars:'kamida 6 ta belgi', changePass:'🔑 Parolni o\'zgartirish',
+    nameRequired:'Nomi *', priceRequired:'Narxi *', categoryRequired:'Kategoriya *',
+    description:'Tavsif', photoUrl:'Rasm URL\'i',
+    namePh:'Classic Futbolka', categoryPh:'Kiyim', descPh:'Qisqa tavsif...',
+    inStock:'✅ Mavjud', outOfStock:'❌ Mavjud emas',
+    cancel:'Bekor qilish', delete:'🗑 O\'chirish', close:'Yopish',
+    confirm:'✅ Tasdiqlash', cancelOrder:'❌ Bekor qilish', delivered:'📦 Yetkazildi',
+    fillRequired:'Majburiy maydonlarni to\'ldiring', productAdded:'Mahsulot qo\'shildi ✓',
+    productUpdated:'Mahsulot yangilandi ✓', productDeleted:'Mahsulot o\'chirildi',
+    confirmDelete:'Bu mahsulotni o\'chirmoqchimisiz?', settingsSaved:'Sozlamalar saqlandi ✓',
+    statusUpdated:'Holat yangilandi ✓', error:'Xato', linkCopied:'Havola nusxa olindi ✓',
+    hideBtn:'Yashirish', showBtn:'Ko\'rsatish',
+  },
+  en: {
+    navOverview:'Overview', navProducts:'Products', navOrders:'Orders', navBot:'Bot', navSettings:'Settings',
+    storeLink:'Store link:', logout:'Logout',
+    welcome:'👋 Welcome!', newOrders:'New Orders', awaitingConfirm:'awaiting confirmation',
+    totalOrders:'Total Orders', allTime:'all time', todayOrders:'Today\'s Orders',
+    today:'today', revenue:'Revenue', allConfirmed:'all confirmed',
+    products:'Products', inStockSub:'in stock', quickStart:'🚀 Quick Start',
+    step1Title:'Set up your Telegram bot', step1Sub:'Go to the Bot tab, create a bot via @BotFather and paste the token.',
+    step2Title:'Add your products', step2Sub:'Go to the Products tab and replace the samples with your real products.',
+    step3Title:'Share your store link', step3Sub:'Copy the link below and send it to your customers.',
+    copyLink:'Click to copy your store link',
+    addProduct:'Add Product', editProduct:'Edit Product',
+    photo:'Photo', name:'Name', category:'Category', price:'Price', status:'Status', actions:'Actions',
+    loading:'Loading...', noProducts:'No products. Click "Add Product".',
+    customer:'Customer', items:'Items', amount:'Amount', date:'Date',
+    allStatuses:'All statuses', statusNew:'New', statusConfirmed:'Confirmed',
+    statusDelivered:'Delivered', statusCancelled:'Cancelled', noOrders:'No orders yet',
+    orderLabel:'Order', totalLabel:'Total',
+    botSetup:'🤖 Bot Setup',
+    botStep1Title:'Create a bot in @BotFather', botStep1Sub:'Open Telegram → @BotFather → /newbot → copy the token.',
+    botStep2Title:'Get your Chat ID', botStep2Sub:'Open @userinfobot → send any message → copy your ID.',
+    botStep3Title:'Paste the details below', botStep3Sub:'After saving, the bot will start automatically.',
+    botToken:'Bot Token (from @BotFather)', chatId:'Your Telegram Chat ID', storeUrl:'Store URL',
+    saveBotBtn:'💾 Save & Start Bot', botSaved:'Bot configured! Run bot-runner.js on your server ✓',
+    storeName:'Store Name', currency:'Currency',
+    defaultLang:'Default store language', defaultLangHint:'Customers will see the store in this language by default.',
+    save:'💾 Save', account:'⚠️ Account', changePassSub:'Change your account password.',
+    newPassword:'New Password', minChars:'minimum 6 characters', changePass:'🔑 Change Password',
+    nameRequired:'Name *', priceRequired:'Price *', categoryRequired:'Category *',
+    description:'Description', photoUrl:'Photo URL',
+    namePh:'Classic T-Shirt', categoryPh:'Clothing', descPh:'Short description...',
+    inStock:'✅ In Stock', outOfStock:'❌ Out of Stock',
+    cancel:'Cancel', delete:'🗑 Delete', close:'Close',
+    confirm:'✅ Confirm', cancelOrder:'❌ Cancel', delivered:'📦 Delivered',
+    fillRequired:'Please fill in required fields', productAdded:'Product added ✓',
+    productUpdated:'Product updated ✓', productDeleted:'Product deleted',
+    confirmDelete:'Delete this product?', settingsSaved:'Settings saved ✓',
+    statusUpdated:'Status updated ✓', error:'Error', linkCopied:'Link copied ✓',
+    hideBtn:'Hide', showBtn:'Show',
+  },
+};
+
+let dashLang = localStorage.getItem('dashLang') || 'ru';
+
+function td(key) {
+  return DASH_T[dashLang]?.[key] ?? DASH_T.ru[key] ?? key;
+}
+
+function applyDashTranslations() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = td(el.dataset.i18n);
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    el.placeholder = td(el.dataset.i18nPlaceholder);
+  });
+  document.querySelectorAll('.lang-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.lang === dashLang);
+  });
+}
+
+function setDashLang(lang) {
+  dashLang = lang;
+  localStorage.setItem('dashLang', lang);
+  applyDashTranslations();
+}
+
+// ── STATE ──────────────────────────────────────────────────
+let token     = localStorage.getItem('token');
+let ownerId   = null;
+let storeUrl  = '';
+let currency  = 'сум';
+let currentOrderId = null;
+
+if (!token) window.location.href = '/auth.html';
+
+// ── API ────────────────────────────────────────────────────
+async function api(method, path, body = null) {
+  const res = await fetch(path, {
+    method,
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: body ? JSON.stringify(body) : null,
+  });
+  if (res.status === 401) { logout(); return; }
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || td('error'));
+  return data;
+}
+
+// ── INIT ───────────────────────────────────────────────────
+async function init() {
+  applyDashTranslations();
+  try {
+    const me = await api('GET', '/auth/me');
+    if (me.role === 'superadmin') { window.location.href = '/superadmin.html'; return; }
+    ownerId  = me.id;
+    storeUrl = `${location.origin}/store.html?owner=${ownerId}`;
+    document.getElementById('sidebar-store-name').textContent = me.name || 'Мой магазин';
+    document.getElementById('sidebar-email').textContent      = me.email;
+    document.getElementById('plan-badge').textContent         = me.plan === 'active' ? '✅ Active' : '🔄 Trial';
+    document.getElementById('store-link-display').textContent = storeUrl;
+    document.getElementById('store-link-display').href        = storeUrl;
+    document.getElementById('copy-store-url').textContent     = `🔗 ${storeUrl}`;
+    document.getElementById('bot-store-url').value            = storeUrl;
+
+    // Load config
+    const cfg = await api('GET', '/api/store-config');
+    currency  = cfg.currency || 'сум';
+    document.getElementById('s-store-name').value = cfg.storeName || '';
+    document.getElementById('s-currency').value   = cfg.currency  || '';
+    if (cfg.botToken)    document.getElementById('bot-token').placeholder    = cfg.botToken;
+    if (cfg.ownerChatId) document.getElementById('bot-chat-id').value        = cfg.ownerChatId;
+    if (cfg.defaultLang) document.getElementById('s-lang').value             = cfg.defaultLang;
+
+    loadStats();
+    loadProducts();
+    loadOrders();
+  } catch (e) {
+    console.error(e);
+    toast(`${td('error')}: ` + e.message);
+  }
+}
+
+// ── NAVIGATION ─────────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  event.currentTarget.classList.add('active');
+  if (name === 'orders') loadOrders();
+  if (name === 'products') loadProducts();
+}
+
+// ── STATS ──────────────────────────────────────────────────
+async function loadStats() {
+  const s = await api('GET', '/api/dashboard-stats');
+  document.getElementById('stat-new').textContent      = s.newOrders;
+  document.getElementById('stat-total').textContent    = s.totalOrders;
+  document.getElementById('stat-today').textContent    = s.todayOrders;
+  document.getElementById('stat-revenue').textContent  = s.totalRevenue.toLocaleString('ru-RU') + ' ' + currency;
+  document.getElementById('stat-products').textContent = s.totalProducts;
+  document.getElementById('stat-instock').textContent  = s.inStock + ' ' + td('inStockSub');
+}
+
+// ── PRODUCTS ───────────────────────────────────────────────
+let allProducts = [];
+
+async function loadProducts() {
+  allProducts = await api('GET', '/api/products');
+  const tbody = document.getElementById('products-tbody');
+  if (!allProducts.length) {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><div class="icon">📦</div><p>${td('noProducts')}</p></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = allProducts.map(p => `
+    <tr>
+      <td><img class="product-thumb" src="${esc(p.image)}" onerror="this.src='https://placehold.co/40x40/eee/aaa?text=📦'" /></td>
+      <td style="font-weight:600">${esc(p.name)}</td>
+      <td>${esc(p.category)}</td>
+      <td style="font-weight:700;color:#4361ee">${p.price.toLocaleString('ru-RU')} ${currency}</td>
+      <td><span class="tag ${p.available ? 'tag-available' : 'tag-out'}">${p.available ? td('inStock') : td('outOfStock')}</span></td>
+      <td>
+        <div class="actions">
+          <button class="btn btn-secondary btn-sm" onclick='openEditModal(${JSON.stringify(p)})'>✏️</button>
+          <button class="btn btn-sm ${p.available ? 'btn-danger' : 'btn-success'}" onclick="toggleProduct('${p.id}')">${p.available ? td('hideBtn') : td('showBtn')}</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+function openAddModal() {
+  document.getElementById('modal-title').textContent   = td('addProduct');
+  document.getElementById('edit-product-id').value     = '';
+  document.getElementById('m-name').value              = '';
+  document.getElementById('m-price').value             = '';
+  document.getElementById('m-category').value          = '';
+  document.getElementById('m-desc').value              = '';
+  document.getElementById('m-image').value             = '';
+  document.getElementById('m-available').value         = 'true';
+  document.getElementById('delete-btn').style.display  = 'none';
+  document.getElementById('product-modal').classList.add('open');
+}
+
+function openEditModal(p) {
+  document.getElementById('modal-title').textContent   = td('editProduct');
+  document.getElementById('edit-product-id').value     = p.id;
+  document.getElementById('m-name').value              = p.name;
+  document.getElementById('m-price').value             = p.price;
+  document.getElementById('m-category').value          = p.category;
+  document.getElementById('m-desc').value              = p.description || '';
+  document.getElementById('m-image').value             = p.image || '';
+  document.getElementById('m-available').value         = String(p.available);
+  document.getElementById('delete-btn').style.display  = 'inline-flex';
+  document.getElementById('product-modal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('product-modal').classList.remove('open');
+}
+
+async function saveProduct() {
+  const id   = document.getElementById('edit-product-id').value;
+  const body = {
+    name:        document.getElementById('m-name').value.trim(),
+    price:       document.getElementById('m-price').value,
+    category:    document.getElementById('m-category').value.trim(),
+    description: document.getElementById('m-desc').value.trim(),
+    image:       document.getElementById('m-image').value.trim(),
+    available:   document.getElementById('m-available').value === 'true',
+  };
+  if (!body.name || !body.price || !body.category) { toast(td('fillRequired')); return; }
+  try {
+    if (id) await api('PUT',  `/api/products/${id}`, body);
+    else    await api('POST', '/api/products', body);
+    closeModal(); loadProducts(); loadStats();
+    toast(id ? td('productUpdated') : td('productAdded'));
+  } catch (e) { toast(`${td('error')}: ` + e.message); }
+}
+
+async function deleteProduct() {
+  const id = document.getElementById('edit-product-id').value;
+  if (!confirm(td('confirmDelete'))) return;
+  try {
+    await api('DELETE', `/api/products/${id}`);
+    closeModal(); loadProducts(); loadStats();
+    toast(td('productDeleted'));
+  } catch (e) { toast(`${td('error')}: ` + e.message); }
+}
+
+async function toggleProduct(id) {
+  try { await api('PATCH', `/api/products/${id}/toggle`); loadProducts(); }
+  catch (e) { toast(`${td('error')}: ` + e.message); }
+}
+
+// ── ORDERS ─────────────────────────────────────────────────
+let allOrders = [];
+
+async function loadOrders() {
+  const status = document.getElementById('order-filter')?.value || '';
+  allOrders = await api('GET', '/api/orders' + (status ? `?status=${status}` : ''));
+  const tbody = document.getElementById('orders-tbody');
+  if (!allOrders.length) {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty"><div class="icon">🛒</div><p>${td('noOrders')}</p></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = allOrders.map(o => `
+    <tr style="cursor:pointer" onclick="openOrder('${o.id}')">
+      <td style="font-weight:700">#${o.id}</td>
+      <td>@${esc(o.customer?.username || '—')} ${esc(o.customer?.firstName || '')}</td>
+      <td style="font-size:13px;color:#666">${o.items.map(i => i.name + ' ×' + i.quantity).join(', ').substring(0, 50)}${o.items.length > 1 ? '...' : ''}</td>
+      <td style="font-weight:700;color:#4361ee">${o.total.toLocaleString('ru-RU')} ${currency}</td>
+      <td style="font-size:13px;color:#999">${new Date(o.createdAt).toLocaleDateString('ru-RU')}</td>
+      <td><span class="tag tag-${o.status}">${statusLabel(o.status)}</span></td>
+    </tr>`).join('');
+}
+
+function openOrder(id) {
+  const o = allOrders.find(o => o.id === id);
+  if (!o) return;
+  currentOrderId = id;
+  document.getElementById('order-modal-title').textContent = `${td('orderLabel')} #${o.id}`;
+  document.getElementById('order-modal-body').innerHTML = `
+    <p style="margin-bottom:12px;font-size:14px;color:#666">
+      👤 @${esc(o.customer?.username || '—')} · ${esc(o.customer?.firstName || '')} · ${new Date(o.createdAt).toLocaleString('ru-RU')}
+    </p>
+    <table style="width:100%;font-size:14px;border-collapse:collapse">
+      ${o.items.map(i => `
+        <tr>
+          <td style="padding:6px 0">${esc(i.name)}</td>
+          <td style="text-align:center;color:#aaa">×${i.quantity}</td>
+          <td style="text-align:right;font-weight:600">${(i.price*i.quantity).toLocaleString('ru-RU')} ${currency}</td>
+        </tr>`).join('')}
+      <tr style="border-top:2px solid #f0f0f0">
+        <td colspan="2" style="padding-top:10px;font-weight:700">Итого</td>
+        <td style="text-align:right;font-weight:800;font-size:16px;padding-top:10px;color:#4361ee">${o.total.toLocaleString('ru-RU')} ${currency}</td>
+      </tr>
+    </table>
+    <div style="margin-top:14px">
+      <span class="tag tag-${o.status}">${statusLabel(o.status)}</span>
+    </div>`;
+  // Show/hide action buttons based on status
+  document.getElementById('confirm-order-btn').style.display = o.status === 'new' ? '' : 'none';
+  document.getElementById('cancel-order-btn').style.display  = ['new','confirmed'].includes(o.status) ? '' : 'none';
+  document.getElementById('deliver-order-btn').style.display = o.status === 'confirmed' ? '' : 'none';
+  document.getElementById('order-modal').classList.add('open');
+}
+
+function closeOrderModal() { document.getElementById('order-modal').classList.remove('open'); }
+
+async function updateOrderStatus(status) {
+  try {
+    await api('PATCH', `/api/orders/${currentOrderId}/status`, { status });
+    closeOrderModal(); loadOrders(); loadStats();
+    toast(td('statusUpdated'));
+  } catch (e) { toast(`${td('error')}: ` + e.message); }
+}
+
+function statusLabel(s) {
+  return {
+    new: td('statusNew'), confirmed: td('statusConfirmed'),
+    delivered: td('statusDelivered'), cancelled: td('statusCancelled')
+  }[s] || s;
+}
+
+// ── BOT SETTINGS ───────────────────────────────────────────
+async function saveBotSettings() {
+  const botToken    = document.getElementById('bot-token').value.trim();
+  const ownerChatId = document.getElementById('bot-chat-id').value.trim();
+  if (!botToken || !ownerChatId) { toast(td('fillRequired')); return; }
+  try {
+    await api('POST', '/api/store-config', { botToken, ownerChatId, storeUrl });
+    toast(td('botSaved'));
+  } catch (e) { toast(`${td('error')}: ` + e.message); }
+}
+
+// ── STORE SETTINGS ─────────────────────────────────────────
+async function saveStoreSettings() {
+  const storeName   = document.getElementById('s-store-name').value.trim();
+  const cur         = document.getElementById('s-currency').value.trim();
+  const defaultLang = document.getElementById('s-lang').value;
+  try {
+    await api('POST', '/api/store-config', { storeName, currency: cur, defaultLang });
+    currency = cur || 'сум';
+    document.getElementById('sidebar-store-name').textContent = storeName;
+    toast(td('settingsSaved'));
+  } catch (e) { toast(`${td('error')}: ` + e.message); }
+}
+
+async function changePassword() {
+  const newPass = document.getElementById('new-password').value;
+  if (!newPass || newPass.length < 6) { toast(td('minChars')); return; }
+  toast('Add /auth/change-password endpoint to enable this');
+}
+
+// ── HELPERS ────────────────────────────────────────────────
+function copyStoreUrl() {
+  navigator.clipboard.writeText(storeUrl).then(() => toast(td('linkCopied')));
+}
+function logout() { localStorage.clear(); window.location.href = '/auth.html'; }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+let toastTimer;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// Close modals on background click
+document.getElementById('product-modal').addEventListener('click', e => { if(e.target === e.currentTarget) closeModal(); });
+document.getElementById('order-modal').addEventListener('click', e => { if(e.target === e.currentTarget) closeOrderModal(); });
+
+init();
+</script>
+</body>
+</html>

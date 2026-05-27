@@ -1,0 +1,65 @@
+[
+  {
+    "name": "Футболка Classic",
+    "price": 89000,
+    "category": "Одежда",
+    "description": "Базовая хлопковая футболка",
+    "image": "https://placehold.co/400x400/f0f0f0/333?text=👕",
+    "available": true,
+    "id": "1"
+  },
+  {
+    "name": "Джинсы Slim Fit",
+    "price": 259000,
+    "category": "Одежда",
+    "description": "Классические зауженные джинсы",
+    "image": "https://placehold.co/400x400/3b5bdb/fff?text=👖",
+    "available": true,
+    "id": "2"
+  },
+  {
+    "name": "Кроссовки Urban Run",
+    "price": 450000,
+    "category": "Обувь",
+    "description": "Лёгкие беговые кроссовки",
+    "image": "https://placehold.co/400x400/2f9e44/fff?text=👟",
+    "available": true,
+    "id": "3"
+  },
+  {
+    "name": "Наушники AirBuds",
+    "price": 380000,
+    "category": "Электроника",
+    "description": "TWS с шумоподавлением",
+    "image": "https://placehold.co/400x400/1c7ed6/fff?text=🎧",
+    "available": true,
+    "id": "4"
+  },
+  {
+    "name": "Рюкзак TravelPack",
+    "price": 215000,
+    "category": "Аксессуары",
+    "description": "Городской рюкзак 25L",
+    "image": "https://placehold.co/400x400/0ca678/fff?text=🎒",
+    "available": true,
+    "id": "5"
+  },
+  {
+    "name": "Смарт-часы FitBand",
+    "price": 690000,
+    "category": "Электроника",
+    "description": "GPS, мониторинг здоровья",
+    "image": "https://placehold.co/400x400/f76707/fff?text=⌚",
+    "available": false,
+    "id": "6"
+  },
+  {
+    "name": "men",
+    "price": 10000,
+    "category": "Одежда",
+    "description": "",
+    "image": "https://placehold.co/400x400/cccccc/333?text=men",
+    "available": true,
+    "id": "7"
+  }
+]

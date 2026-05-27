@@ -1,0 +1,128 @@
+[
+  {
+    "id": "1",
+    "name": "Футболка Classic White",
+    "price": 89000,
+    "category": "men",
+    "description": "Базовая белая футболка из 100% хлопка. Идеальный повседневный образ.",
+    "image": "https://placehold.co/400x400/f0f0f0/333333?text=👕+Футболка",
+    "available": true
+  },
+  {
+    "id": "2",
+    "name": "Джинсы Slim Fit",
+    "price": 259000,
+    "category": "Одежда",
+    "description": "Классические джинсы зауженного кроя. Доступны в нескольких размерах.",
+    "image": "https://placehold.co/400x400/3b5bdb/ffffff?text=👖+Джинсы",
+    "available": true
+  },
+  {
+    "id": "3",
+    "name": "Кроссовки Urban Run",
+    "price": 450000,
+    "category": "Обувь",
+    "description": "Лёгкие беговые кроссовки с поддержкой стопы. Дышащий материал.",
+    "image": "https://placehold.co/400x400/2f9e44/ffffff?text=👟+Кроссовки",
+    "available": true
+  },
+  {
+    "id": "4",
+    "name": "Толстовка Hoodie Pro",
+    "price": 189000,
+    "category": "Одежда",
+    "description": "Тёплая толстовка с капюшоном. Карман-кенгуру, флисовая подкладка.",
+    "image": "https://placehold.co/400x400/e64980/ffffff?text=🧥+Толстовка",
+    "available": true
+  },
+  {
+    "id": "5",
+    "name": "Ботинки Chelsea",
+    "price": 520000,
+    "category": "Обувь",
+    "description": "Стильные ботинки Chelsea из натуральной кожи. Резинки по бокам.",
+    "image": "https://placehold.co/400x400/845ef7/ffffff?text=👢+Ботинки",
+    "available": false
+  },
+  {
+    "id": "6",
+    "name": "Наушники AirBuds X",
+    "price": 380000,
+    "category": "Электроника",
+    "description": "Беспроводные TWS-наушники с активным шумоподавлением. 24ч автономности.",
+    "image": "https://placehold.co/400x400/1c7ed6/ffffff?text=🎧+Наушники",
+    "available": true
+  },
+  {
+    "id": "7",
+    "name": "Смарт-часы FitBand 3",
+    "price": 690000,
+    "category": "Электроника",
+    "description": "Умные часы с мониторингом здоровья, GPS и 7 днями работы.",
+    "image": "https://placehold.co/400x400/f76707/ffffff?text=⌚+Часы",
+    "available": true
+  },
+  {
+    "id": "8",
+    "name": "Рюкзак TravelPack 25L",
+    "price": 215000,
+    "category": "Аксессуары",
+    "description": "Городской рюкзак 25 литров. USB-порт, отдел для ноутбука 15\".",
+    "image": "https://placehold.co/400x400/0ca678/ffffff?text=🎒+Рюкзак",
+    "available": true
+  },
+  {
+    "id": "9",
+    "name": "Очки Aviator Gold",
+    "price": 125000,
+    "category": "Аксессуары",
+    "description": "Солнцезащитные очки в стиле aviator. Поляризованные линзы UV400.",
+    "image": "https://placehold.co/400x400/f59f00/333333?text=🕶️+Очки",
+    "available": true
+  },
+  {
+    "id": "10",
+    "name": "Зарядное устройство 65W",
+    "price": 145000,
+    "category": "Электроника",
+    "description": "Компактный GaN-блок питания 65W. USB-C PD + USB-A QC. 3 устройства.",
+    "image": "https://placehold.co/400x400/495057/ffffff?text=🔌+Зарядка",
+    "available": true
+  },
+  {
+    "id": "11",
+    "name": "Ремень Leather Classic",
+    "price": 75000,
+    "category": "Аксессуары",
+    "description": "Кожаный ремень ручной работы. Металлическая пряжка, универсальный размер.",
+    "image": "https://placehold.co/400x400/6d4c41/ffffff?text=👔+Ремень",
+    "available": true
+  },
+  {
+    "id": "12",
+    "name": "Кеды Canvas Low",
+    "price": 195000,
+    "category": "Обувь",
+    "description": "Классические низкие кеды из парусины. Резиновая подошва, 5 цветов.",
+    "image": "https://placehold.co/400x400/c92a2a/ffffff?text=👟+Кеды",
+    "available": true
+  },
+  {
+    "id": "13",
+    "name": "Шапка Wool Beanie",
+    "price": 55000,
+    "category": "Аксессуары",
+    "description": "Тёплая вязаная шапка из шерсти. Рибана, подворачивается.",
+    "image": "https://placehold.co/400x400/364fc7/ffffff?text=🧢+Шапка",
+    "available": true
+  },
+  {
+    "id": "14",
+    "name": "Power Bank 20000mAh",
+    "price": 235000,
+    "category": "Электроника",
+    "description": "Портативная батарея 20000mAh. 2x USB-A + 1x USB-C, дисплей заряда.",
+    "image": "https://placehold.co/400x400/2b8a3e/ffffff?text=🔋+PowerBank",
+    "available": false
+  }
+]

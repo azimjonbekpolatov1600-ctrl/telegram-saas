@@ -1,0 +1,1854 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Telegram Shop</title>
+
+  <!-- Telegram Mini App SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <!-- Google Fonts: Rubik (CIS-friendly, Cyrillic support) + Manrope -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ═══════════════════════════════════════════════════════════
+       ROOT CONFIG — all store colors and tokens in one place
+       REPLACE: adjust brand colors here
+    ═══════════════════════════════════════════════════════════ */
+    :root {
+      /* Telegram theme vars (auto-set by SDK, fallbacks for browser testing) */
+      --tg-bg:           var(--tg-theme-bg-color,           #ffffff);
+      --tg-secondary-bg: var(--tg-theme-secondary-bg-color, #f4f4f5);
+      --tg-text:         var(--tg-theme-text-color,         #111111);
+      --tg-hint:         var(--tg-theme-hint-color,         #888888);
+      --tg-link:         var(--tg-theme-link-color,         #2563eb);
+      --tg-button:       var(--tg-theme-button-color,       #2563eb);
+      --tg-button-text:  var(--tg-theme-button-text-color,  #ffffff);
+      --tg-accent:       var(--tg-theme-accent-text-color,  #2563eb);
+
+      /* Store custom tokens */
+      --card-radius:     14px;
+      --btn-radius:      10px;
+      --shadow-sm:       0 2px 8px rgba(0,0,0,0.07);
+      --shadow-md:       0 4px 20px rgba(0,0,0,0.12);
+      --shadow-lg:       0 8px 40px rgba(0,0,0,0.18);
+      --transition:      0.22s cubic-bezier(0.4,0,0.2,1);
+      --badge-color:     #ef4444;
+
+      /* REPLACE: Store accent / brand color */
+      --brand:           var(--tg-button);
+      --brand-text:      var(--tg-button-text);
+    }
+
+    /* ─── RESET & BASE ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      font-family: 'Rubik', sans-serif;
+      background: var(--tg-bg);
+      color: var(--tg-text);
+      min-height: 100dvh;
+      overscroll-behavior: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    button { font-family: inherit; cursor: pointer; border: none; outline: none; }
+    img { display: block; width: 100%; object-fit: cover; }
+    input, textarea, select { font-family: inherit; }
+
+    /* ─── SCROLLBAR hide ────────────────────────────────────── */
+    ::-webkit-scrollbar { display: none; }
+    * { scrollbar-width: none; }
+
+    /* ═══════════════════════════════════════════════════════════
+       HEADER
+    ═══════════════════════════════════════════════════════════ */
+    #header {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--tg-bg);
+      padding: 12px 16px 10px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid color-mix(in srgb, var(--tg-hint) 20%, transparent);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    #store-name {
+      font-size: 20px; font-weight: 800; letter-spacing: -0.5px;
+      color: var(--tg-text);
+      user-select: none;
+    }
+    #store-name span { color: var(--brand); }
+    #cart-btn {
+      position: relative;
+      background: var(--tg-secondary-bg);
+      border-radius: 12px;
+      padding: 8px 12px;
+      display: flex; align-items: center; gap: 6px;
+      font-size: 15px; font-weight: 600; color: var(--tg-text);
+      transition: transform var(--transition), background var(--transition);
+      -webkit-tap-highlight-color: transparent;
+    }
+    #cart-btn:active { transform: scale(0.94); }
+    #cart-icon { font-size: 20px; }
+    #cart-count {
+      background: var(--badge-color);
+      color: #fff;
+      font-size: 11px; font-weight: 700;
+      border-radius: 99px;
+      min-width: 18px; height: 18px;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0 4px;
+      position: absolute; top: -4px; right: -4px;
+      transition: transform 0.2s;
+      transform: scale(0);
+    }
+    #cart-count.visible { transform: scale(1); }
+
+    /* ═══════════════════════════════════════════════════════════
+       CATEGORY FILTER
+    ═══════════════════════════════════════════════════════════ */
+    #categories {
+      padding: 12px 16px 4px;
+      display: flex; gap: 8px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .cat-btn {
+      flex-shrink: 0;
+      background: var(--tg-secondary-bg);
+      color: var(--tg-hint);
+      border-radius: 99px;
+      padding: 7px 16px;
+      font-size: 14px; font-weight: 500;
+      transition: background var(--transition), color var(--transition), transform var(--transition);
+      white-space: nowrap;
+    }
+    .cat-btn:active { transform: scale(0.95); }
+    .cat-btn.active {
+      background: var(--brand);
+      color: var(--brand-text);
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       PRODUCTS GRID
+    ═══════════════════════════════════════════════════════════ */
+    #products-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      padding: 12px 16px 100px;
+    }
+    .product-card {
+      background: var(--tg-secondary-bg);
+      border-radius: var(--card-radius);
+      overflow: hidden;
+      position: relative;
+      box-shadow: var(--shadow-sm);
+      opacity: 0;
+      transform: translateY(16px);
+      animation: fadeUp 0.35s var(--transition) forwards;
+      display: flex; flex-direction: column;
+    }
+    @keyframes fadeUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .product-card:nth-child(1)  { animation-delay: 0.03s; }
+    .product-card:nth-child(2)  { animation-delay: 0.07s; }
+    .product-card:nth-child(3)  { animation-delay: 0.11s; }
+    .product-card:nth-child(4)  { animation-delay: 0.15s; }
+    .product-card:nth-child(5)  { animation-delay: 0.19s; }
+    .product-card:nth-child(6)  { animation-delay: 0.23s; }
+    .product-card:nth-child(7)  { animation-delay: 0.27s; }
+    .product-card:nth-child(8)  { animation-delay: 0.31s; }
+    .product-card:nth-child(n+9) { animation-delay: 0.35s; }
+
+    .product-img-wrap {
+      width: 100%; aspect-ratio: 1;
+      position: relative; overflow: hidden;
+      background: color-mix(in srgb, var(--tg-hint) 15%, transparent);
+    }
+    .product-img-wrap img {
+      width: 100%; height: 100%;
+      transition: transform 0.4s ease;
+    }
+    .product-card:active .product-img-wrap img { transform: scale(1.04); }
+
+    .out-badge {
+      position: absolute; top: 8px; left: 8px;
+      background: rgba(0,0,0,0.65);
+      color: #fff; font-size: 11px; font-weight: 600;
+      border-radius: 6px; padding: 3px 8px;
+      backdrop-filter: blur(4px);
+    }
+
+    .product-info { padding: 9px 10px 10px; flex: 1; display: flex; flex-direction: column; }
+    .product-name {
+      font-size: 13px; font-weight: 600;
+      line-height: 1.3; color: var(--tg-text);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      margin-bottom: 5px;
+    }
+    .product-price {
+      font-size: 14px; font-weight: 700;
+      color: var(--brand); margin-bottom: 8px; margin-top: auto;
+    }
+
+    .add-btn {
+      width: 100%;
+      background: var(--brand);
+      color: var(--brand-text);
+      border-radius: var(--btn-radius);
+      padding: 8px;
+      font-size: 13px; font-weight: 600;
+      transition: opacity var(--transition), transform var(--transition);
+    }
+    .add-btn:active { transform: scale(0.96); opacity: 0.88; }
+    .add-btn:disabled {
+      background: color-mix(in srgb, var(--tg-hint) 30%, transparent);
+      color: var(--tg-hint);
+      cursor: default;
+    }
+    .in-cart-btn {
+      background: color-mix(in srgb, var(--brand) 15%, transparent);
+      color: var(--brand);
+    }
+
+    /* ─── EMPTY STATE ───────────────────────────────────────── */
+    #empty-state {
+      display: none;
+      flex-direction: column; align-items: center; justify-content: center;
+      padding: 60px 20px;
+      text-align: center; gap: 12px;
+      grid-column: 1/-1;
+    }
+    #empty-state .emoji { font-size: 52px; }
+    #empty-state p { color: var(--tg-hint); font-size: 15px; }
+
+    /* ═══════════════════════════════════════════════════════════
+       CART BOTTOM SHEET
+    ═══════════════════════════════════════════════════════════ */
+    #cart-overlay {
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,0);
+      pointer-events: none;
+      transition: background 0.3s;
+    }
+    #cart-overlay.open {
+      background: rgba(0,0,0,0.45);
+      pointer-events: all;
+    }
+    #cart-sheet {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 201;
+      background: var(--tg-bg);
+      border-radius: 20px 20px 0 0;
+      max-height: 88dvh;
+      display: flex; flex-direction: column;
+      transform: translateY(100%);
+      transition: transform 0.38s cubic-bezier(0.32,0.72,0,1);
+      box-shadow: var(--shadow-lg);
+    }
+    #cart-sheet.open { transform: translateY(0); }
+
+    #cart-handle {
+      width: 36px; height: 4px;
+      background: color-mix(in srgb, var(--tg-hint) 35%, transparent);
+      border-radius: 99px;
+      margin: 10px auto 0;
+    }
+    #cart-header {
+      padding: 12px 16px 8px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0;
+    }
+    #cart-title { font-size: 18px; font-weight: 700; }
+    #cart-clear-btn {
+      background: none; color: var(--badge-color);
+      font-size: 13px; font-weight: 500;
+    }
+    #cart-items {
+      overflow-y: auto; flex: 1;
+      padding: 4px 16px 16px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .cart-item {
+      display: flex; gap: 12px; align-items: center;
+    }
+    .cart-item-img {
+      width: 56px; height: 56px; flex-shrink: 0;
+      border-radius: 10px; overflow: hidden;
+      background: var(--tg-secondary-bg);
+    }
+    .cart-item-info { flex: 1; min-width: 0; }
+    .cart-item-name {
+      font-size: 14px; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .cart-item-price { font-size: 13px; color: var(--tg-hint); margin-top: 2px; }
+
+    .qty-controls {
+      display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+    }
+    .qty-btn {
+      width: 28px; height: 28px;
+      border-radius: 8px;
+      background: var(--tg-secondary-bg);
+      color: var(--tg-text);
+      font-size: 18px; font-weight: 500;
+      display: flex; align-items: center; justify-content: center;
+      transition: background var(--transition), transform var(--transition);
+    }
+    .qty-btn:active { transform: scale(0.88); }
+    .qty-btn.minus { color: var(--badge-color); }
+    .qty-num { font-size: 15px; font-weight: 600; min-width: 20px; text-align: center; }
+
+    #cart-footer {
+      flex-shrink: 0;
+      padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+      border-top: 1px solid color-mix(in srgb, var(--tg-hint) 18%, transparent);
+    }
+    #cart-total-row {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 12px;
+    }
+    #cart-total-label { font-size: 15px; color: var(--tg-hint); }
+    #cart-total-price { font-size: 20px; font-weight: 800; color: var(--tg-text); }
+
+    #order-btn {
+      width: 100%;
+      background: var(--brand); color: var(--brand-text);
+      border-radius: var(--btn-radius);
+      padding: 14px;
+      font-size: 16px; font-weight: 700;
+      transition: opacity var(--transition), transform var(--transition);
+    }
+    #order-btn:active { transform: scale(0.98); opacity: 0.9; }
+
+    /* ═══════════════════════════════════════════════════════════
+       SUCCESS SCREEN
+    ═══════════════════════════════════════════════════════════ */
+    #success-screen {
+      display: none;
+      position: fixed; inset: 0; z-index: 300;
+      background: var(--tg-bg);
+      flex-direction: column; align-items: center; justify-content: center;
+      padding: 32px;
+      text-align: center;
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }
+    #success-screen.visible { display: flex; }
+    .success-icon {
+      font-size: 72px; margin-bottom: 20px;
+      animation: pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+    @keyframes pop { from { transform: scale(0); } to { transform: scale(1); } }
+    .success-title { font-size: 26px; font-weight: 800; margin-bottom: 10px; }
+    .success-sub { font-size: 16px; color: var(--tg-hint); line-height: 1.5; margin-bottom: 28px; }
+    .success-order-num {
+      background: var(--tg-secondary-bg);
+      border-radius: 12px; padding: 12px 24px;
+      font-size: 18px; font-weight: 700; margin-bottom: 28px;
+      letter-spacing: 1px;
+    }
+    #back-to-shop-btn {
+      background: var(--brand); color: var(--brand-text);
+      border-radius: var(--btn-radius);
+      padding: 14px 32px;
+      font-size: 16px; font-weight: 700;
+      width: 100%; max-width: 300px;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       LOADING SKELETON
+    ═══════════════════════════════════════════════════════════ */
+    .skeleton {
+      background: linear-gradient(90deg,
+        color-mix(in srgb, var(--tg-hint) 15%, transparent) 25%,
+        color-mix(in srgb, var(--tg-hint) 8%, transparent)  50%,
+        color-mix(in srgb, var(--tg-hint) 15%, transparent) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 8px;
+    }
+    @keyframes shimmer { to { background-position: -200% 0; } }
+
+    /* ═══════════════════════════════════════════════════════════
+       ADMIN PANEL
+    ═══════════════════════════════════════════════════════════ */
+    #admin-panel {
+      display: none;
+      position: fixed; inset: 0; z-index: 500;
+      background: var(--tg-bg);
+      flex-direction: column;
+      animation: slideRight 0.3s ease;
+      overflow: hidden;
+    }
+    @keyframes slideRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
+    #admin-panel.visible { display: flex; }
+
+    #admin-header {
+      padding: 14px 16px;
+      display: flex; align-items: center; gap: 12px;
+      border-bottom: 1px solid color-mix(in srgb, var(--tg-hint) 20%, transparent);
+      flex-shrink: 0;
+    }
+    #admin-back-btn {
+      background: var(--tg-secondary-bg);
+      border-radius: 10px; padding: 8px 12px;
+      font-size: 15px; color: var(--tg-text);
+    }
+    #admin-header h2 { font-size: 18px; font-weight: 700; }
+
+    #admin-tabs {
+      display: flex; border-bottom: 1px solid color-mix(in srgb, var(--tg-hint) 20%, transparent);
+      flex-shrink: 0; overflow-x: auto;
+    }
+    .admin-tab {
+      flex: 1; min-width: 70px;
+      padding: 12px 8px; text-align: center;
+      font-size: 13px; font-weight: 600; color: var(--tg-hint);
+      background: none; border-bottom: 2px solid transparent;
+      white-space: nowrap;
+      transition: color var(--transition), border-color var(--transition);
+    }
+    .admin-tab.active { color: var(--brand); border-bottom-color: var(--brand); }
+
+    .admin-content {
+      display: none; flex: 1; overflow-y: auto;
+      padding: 16px;
+    }
+    .admin-content.active { display: block; }
+
+    /* Admin forms */
+    .form-group { margin-bottom: 14px; }
+    .form-label { font-size: 13px; font-weight: 600; color: var(--tg-hint); margin-bottom: 6px; display: block; }
+    .form-input {
+      width: 100%;
+      background: var(--tg-secondary-bg);
+      border: 1.5px solid transparent;
+      border-radius: 10px; padding: 11px 14px;
+      font-size: 15px; color: var(--tg-text);
+      transition: border-color var(--transition);
+    }
+    .form-input:focus { outline: none; border-color: var(--brand); }
+    .form-btn {
+      width: 100%;
+      background: var(--brand); color: var(--brand-text);
+      border-radius: var(--btn-radius);
+      padding: 12px; font-size: 15px; font-weight: 600;
+      margin-top: 4px;
+      transition: opacity var(--transition);
+    }
+    .form-btn:active { opacity: 0.85; }
+    .form-btn.danger { background: var(--badge-color); }
+    .form-btn.secondary {
+      background: var(--tg-secondary-bg);
+      color: var(--tg-text);
+    }
+
+    /* Admin product cards */
+    .admin-product-row {
+      background: var(--tg-secondary-bg);
+      border-radius: 12px; padding: 12px;
+      display: flex; gap: 12px; align-items: center;
+      margin-bottom: 10px;
+    }
+    .admin-product-row img {
+      width: 48px; height: 48px; border-radius: 8px; flex-shrink: 0;
+    }
+    .admin-product-info { flex: 1; min-width: 0; }
+    .admin-product-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .admin-product-meta { font-size: 12px; color: var(--tg-hint); margin-top: 2px; }
+
+    .row-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .icon-btn {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: var(--tg-bg);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px;
+      transition: transform var(--transition);
+    }
+    .icon-btn:active { transform: scale(0.88); }
+
+    /* Admin order row */
+    .admin-order-row {
+      background: var(--tg-secondary-bg);
+      border-radius: 12px; padding: 12px;
+      margin-bottom: 10px;
+    }
+    .order-row-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 6px;
+    }
+    .order-id { font-size: 14px; font-weight: 700; }
+    .order-status {
+      font-size: 11px; font-weight: 600;
+      border-radius: 6px; padding: 3px 8px;
+    }
+    .status-new       { background: #dbeafe; color: #1d4ed8; }
+    .status-confirmed { background: #d1fae5; color: #065f46; }
+    .status-delivered { background: #f3e8ff; color: #7e22ce; }
+    .status-cancelled { background: #fee2e2; color: #991b1b; }
+
+    .order-customer { font-size: 13px; color: var(--tg-hint); margin-bottom: 6px; }
+    .order-items-preview { font-size: 12px; color: var(--tg-text); margin-bottom: 8px; }
+    .order-total-row { display: flex; justify-content: space-between; align-items: center; }
+    .order-total-val { font-size: 14px; font-weight: 700; color: var(--brand); }
+
+    .status-select {
+      background: var(--tg-bg); color: var(--tg-text);
+      border: 1.5px solid color-mix(in srgb, var(--tg-hint) 30%, transparent);
+      border-radius: 8px; padding: 5px 8px;
+      font-size: 12px; font-family: inherit;
+    }
+
+    /* Admin login gate */
+    #admin-login {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; flex: 1;
+      padding: 32px;
+    }
+    #admin-login .lock-icon { font-size: 56px; margin-bottom: 20px; }
+    #admin-login h3 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+    #admin-login p { font-size: 14px; color: var(--tg-hint); margin-bottom: 24px; text-align: center; }
+    #admin-pass-input {
+      width: 100%; max-width: 300px;
+      background: var(--tg-secondary-bg);
+      border: 1.5px solid transparent; border-radius: 10px;
+      padding: 12px 16px; font-size: 16px; color: var(--tg-text);
+      text-align: center; letter-spacing: 4px; margin-bottom: 12px;
+    }
+    #admin-pass-input:focus { outline: none; border-color: var(--brand); }
+    #admin-login-btn {
+      width: 100%; max-width: 300px;
+      background: var(--brand); color: var(--brand-text);
+      border-radius: var(--btn-radius); padding: 13px;
+      font-size: 16px; font-weight: 600;
+    }
+    #admin-login-error {
+      color: var(--badge-color); font-size: 13px;
+      margin-top: 8px; display: none;
+    }
+
+    /* Toast */
+    #toast {
+      position: fixed; bottom: 90px; left: 50%; z-index: 999;
+      transform: translateX(-50%) translateY(20px);
+      background: #1a1a1a; color: #fff;
+      border-radius: 10px; padding: 10px 18px;
+      font-size: 14px; font-weight: 500;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.25s, transform 0.25s;
+      white-space: nowrap;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* Section headers in admin */
+    .section-title {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1px; color: var(--tg-hint);
+      margin: 16px 0 8px;
+    }
+    .section-title:first-child { margin-top: 0; }
+    .divider {
+      height: 1px;
+      background: color-mix(in srgb, var(--tg-hint) 18%, transparent);
+      margin: 12px 0;
+    }
+
+    /* Toggle switch */
+    .toggle-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 0;
+    }
+    .toggle-label { font-size: 14px; font-weight: 500; }
+    .toggle {
+      width: 44px; height: 26px; border-radius: 99px;
+      background: color-mix(in srgb, var(--tg-hint) 30%, transparent);
+      position: relative; cursor: pointer;
+      transition: background 0.22s;
+    }
+    .toggle.on { background: var(--brand); }
+    .toggle::after {
+      content: '';
+      position: absolute; top: 3px; left: 3px;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: #fff;
+      transition: transform 0.22s;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    }
+    .toggle.on::after { transform: translateX(18px); }
+
+    /* Scrollable product list in admin */
+    #admin-products-list,
+    #admin-orders-list,
+    #admin-cats-list { margin-top: 8px; }
+
+    .cat-admin-row {
+      background: var(--tg-secondary-bg);
+      border-radius: 10px; padding: 12px 14px;
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .cat-name-text { font-size: 15px; font-weight: 500; }
+
+    /* ═══════════════════════════════════════════════════════════
+       LANGUAGE SWITCHER
+    ═══════════════════════════════════════════════════════════ */
+    #lang-switcher {
+      display: flex; gap: 4px; align-items: center;
+      background: var(--tg-secondary-bg);
+      border-radius: 10px; padding: 3px;
+      flex-shrink: 0;
+    }
+    .lang-btn {
+      padding: 5px 9px;
+      border-radius: 7px;
+      font-size: 12px; font-weight: 700;
+      color: var(--tg-hint);
+      background: none;
+      transition: background var(--transition), color var(--transition);
+      letter-spacing: 0.3px;
+    }
+    .lang-btn.active {
+      background: var(--tg-bg);
+      color: var(--tg-text);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.10);
+    }
+    /* Tighten header when lang switcher is present */
+    #header { gap: 8px; }
+    #store-name { flex: 1; min-width: 0; }
+  </style>
+</head>
+<body>
+
+<!-- ───────────── HEADER ───────────── -->
+<div id="header">
+  <!-- Long-press store name to open admin -->
+  <div id="store-name">Telegram <span>Shop</span></div>
+  <!-- Language switcher -->
+  <div id="lang-switcher" aria-label="Language">
+    <button class="lang-btn active" data-lang="ru">RU</button>
+    <button class="lang-btn" data-lang="uz">UZ</button>
+    <button class="lang-btn" data-lang="en">EN</button>
+  </div>
+  <button id="cart-btn" aria-label="Cart">
+    <span id="cart-icon">🛒</span>
+    <span id="cart-count">0</span>
+  </button>
+</div>
+
+<!-- ───────────── CATEGORY FILTER ───────────── -->
+<div id="categories">
+  <button class="cat-btn active" data-cat="all" data-i18n="all">Все</button>
+  <!-- Categories added dynamically from products -->
+</div>
+
+<!-- ───────────── PRODUCTS GRID ───────────── -->
+<div id="products-grid">
+  <!-- Skeleton loaders while fetching -->
+  <div class="product-card" style="opacity:1;transform:none;">
+    <div class="product-img-wrap skeleton" style="aspect-ratio:1"></div>
+    <div class="product-info">
+      <div class="skeleton" style="height:14px;width:80%;margin-bottom:6px"></div>
+      <div class="skeleton" style="height:14px;width:50%;margin-bottom:8px"></div>
+      <div class="skeleton" style="height:32px;border-radius:10px"></div>
+    </div>
+  </div>
+  <div class="product-card" style="opacity:1;transform:none;">
+    <div class="product-img-wrap skeleton" style="aspect-ratio:1"></div>
+    <div class="product-info">
+      <div class="skeleton" style="height:14px;width:75%;margin-bottom:6px"></div>
+      <div class="skeleton" style="height:14px;width:45%;margin-bottom:8px"></div>
+      <div class="skeleton" style="height:32px;border-radius:10px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ───────────── CART OVERLAY + SHEET ───────────── -->
+<div id="cart-overlay"></div>
+<div id="cart-sheet" role="dialog" aria-modal="true">
+  <div id="cart-handle"></div>
+  <div id="cart-header">
+    <span id="cart-title" data-i18n="cart">Корзина</span>
+    <button id="cart-clear-btn" data-i18n="clearCart">Очистить</button>
+  </div>
+  <div id="cart-items"></div>
+  <div id="cart-footer">
+    <div id="cart-total-row">
+      <span id="cart-total-label" data-i18n="total">Итого:</span>
+      <span id="cart-total-price">0 сум</span>
+    </div>
+    <button id="order-btn" data-i18n="placeOrder">Оформить заказ</button>
+  </div>
+</div>
+
+<!-- ───────────── SUCCESS SCREEN ───────────── -->
+<div id="success-screen">
+  <div class="success-icon">🎉</div>
+  <h2 class="success-title" data-i18n="orderPlaced">Заказ оформлен!</h2>
+  <p class="success-sub" data-i18n="orderSub">Мы свяжемся с вами для подтверждения заказа.</p>
+  <div class="success-order-num" id="success-order-num">---</div>
+  <button id="back-to-shop-btn" data-i18n="continueShopping">Продолжить покупки</button>
+</div>
+
+<!-- ───────────── TOAST ───────────── -->
+<div id="toast"></div>
+
+<!-- ═══════════════════════════════════════
+     ADMIN PANEL
+═══════════════════════════════════════ -->
+<div id="admin-panel">
+  <div id="admin-header">
+    <button id="admin-back-btn">← <span data-i18n="back">Назад</span></button>
+    <h2>🔧 <span data-i18n="adminPanel">Панель администратора</span></h2>
+  </div>
+
+  <!-- Admin Login Gate -->
+  <div id="admin-login">
+    <div class="lock-icon">🔐</div>
+    <h3 data-i18n="adminLogin">Вход для администратора</h3>
+    <p data-i18n="adminLoginSub">Введите пароль для доступа к панели управления</p>
+    <input type="password" id="admin-pass-input" placeholder="••••••••" maxlength="32" />
+    <button id="admin-login-btn" data-i18n="enter">Войти</button>
+    <div id="admin-login-error" data-i18n="wrongPass">Неверный пароль</div>
+  </div>
+
+  <!-- Admin Tabs (hidden until logged in) -->
+  <div id="admin-tabs-wrap" style="display:none;flex:1;overflow:hidden;display:none;flex-direction:column;">
+    <div id="admin-tabs">
+      <button class="admin-tab active" data-tab="products" data-i18n="products">Товары</button>
+      <button class="admin-tab" data-tab="categories" data-i18n="categories">Категории</button>
+      <button class="admin-tab" data-tab="orders" data-i18n="orders">Заказы</button>
+      <button class="admin-tab" data-tab="settings" data-i18n="settings">Настройки</button>
+    </div>
+
+    <!-- ── TAB: PRODUCTS ── -->
+    <div class="admin-content active" id="tab-products">
+      <p class="section-title" data-i18n="addProduct">Добавить товар</p>
+      <div class="form-group">
+        <label class="form-label" data-i18n="name">Название</label>
+        <input class="form-input" id="p-name" data-i18n-placeholder="namePlaceholder" placeholder="Например: Футболка Classic" />
+      </div>
+      <div class="form-group">
+        <label class="form-label" data-i18n="priceSom">Цена (сум)</label>
+        <input class="form-input" id="p-price" type="number" placeholder="89000" />
+      </div>
+      <div class="form-group">
+        <label class="form-label" data-i18n="category">Категория</label>
+        <input class="form-input" id="p-category" data-i18n-placeholder="categoryPlaceholder" placeholder="Одежда" list="cats-datalist" />
+        <datalist id="cats-datalist"></datalist>
+      </div>
+      <div class="form-group">
+        <label class="form-label" data-i18n="description">Описание</label>
+        <textarea class="form-input" id="p-desc" rows="2" data-i18n-placeholder="descPlaceholder" placeholder="Краткое описание товара"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label" data-i18n="photoUrl">URL фото</label>
+        <input class="form-input" id="p-image" placeholder="https://placehold.co/400x400" />
+      </div>
+      <button class="form-btn" id="add-product-btn">➕ <span data-i18n="addProduct">Добавить товар</span></button>
+
+      <p class="section-title" style="margin-top:20px" data-i18n="productList">Список товаров</p>
+      <div id="admin-products-list"></div>
+    </div>
+
+    <!-- ── TAB: CATEGORIES ── -->
+    <div class="admin-content" id="tab-categories">
+      <p class="section-title" data-i18n="addCategory">Добавить категорию</p>
+      <div class="form-group">
+        <label class="form-label" data-i18n="categoryName">Название категории</label>
+        <input class="form-input" id="new-cat-input" data-i18n-placeholder="categoryPlaceholder" placeholder="Электроника" />
+      </div>
+      <button class="form-btn" id="add-cat-btn">➕ <span data-i18n="addCategory">Добавить категорию</span></button>
+      <p class="section-title" style="margin-top:20px" data-i18n="currentCategories">Текущие категории</p>
+      <div id="admin-cats-list"></div>
+    </div>
+
+    <!-- ── TAB: ORDERS ── -->
+    <div class="admin-content" id="tab-orders">
+      <p class="section-title" data-i18n="allOrders">Все заказы</p>
+      <div id="admin-orders-list">
+        <p style="color:var(--tg-hint);text-align:center;padding:24px" data-i18n="loadingOrders">Загрузка заказов...</p>
+      </div>
+    </div>
+
+    <!-- ── TAB: SETTINGS ── -->
+    <div class="admin-content" id="tab-settings">
+      <p class="section-title" data-i18n="store">Магазин</p>
+      <div class="form-group">
+        <label class="form-label" data-i18n="storeName">Название магазина</label>
+        <input class="form-input" id="s-name" placeholder="Telegram Shop 🛍" />
+      </div>
+      <div class="form-group">
+        <label class="form-label" data-i18n="currency">Валюта</label>
+        <input class="form-input" id="s-currency" placeholder="сум" />
+      </div>
+      <p class="section-title" data-i18n="bot">Бот</p>
+      <div class="form-group">
+        <label class="form-label" data-i18n="ownerChatId">Telegram Chat ID владельца</label>
+        <input class="form-input" id="s-owner-id" placeholder="123456789" />
+      </div>
+      <div class="form-group">
+        <label class="form-label" data-i18n="adminKey">Admin API Key</label>
+        <input class="form-input" id="s-api-key" type="password" placeholder="super-secret-admin-key-2025" />
+      </div>
+      <button class="form-btn" id="save-settings-btn">💾 <span data-i18n="saveSettings">Сохранить настройки</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     PRODUCT EDIT MODAL (inline)
+═══════════════════════════════════════ -->
+<div id="edit-overlay" style="
+  display:none; position:fixed; inset:0; z-index:600;
+  background:rgba(0,0,0,0.5);
+  align-items:flex-end;
+">
+  <div id="edit-sheet" style="
+    background:var(--tg-bg); border-radius:20px 20px 0 0;
+    width:100%; padding:20px 16px calc(20px + env(safe-area-inset-bottom));
+    max-height:90dvh; overflow-y:auto;
+  ">
+    <h3 style="font-size:17px;font-weight:700;margin-bottom:16px">✏️ <span data-i18n="editProduct">Редактировать товар</span></h3>
+    <input type="hidden" id="edit-id" />
+    <div class="form-group"><label class="form-label" data-i18n="name">Название</label><input class="form-input" id="edit-name" /></div>
+    <div class="form-group"><label class="form-label" data-i18n="priceSom">Цена (сум)</label><input class="form-input" id="edit-price" type="number" /></div>
+    <div class="form-group"><label class="form-label" data-i18n="category">Категория</label><input class="form-input" id="edit-cat" /></div>
+    <div class="form-group"><label class="form-label" data-i18n="description">Описание</label><textarea class="form-input" id="edit-desc" rows="2"></textarea></div>
+    <div class="form-group"><label class="form-label" data-i18n="photoUrl">URL фото</label><input class="form-input" id="edit-image" /></div>
+    <div class="toggle-row">
+      <span class="toggle-label" data-i18n="inStock">В наличии</span>
+      <div class="toggle on" id="edit-available-toggle"></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button class="form-btn secondary" id="edit-cancel-btn" style="flex:1" data-i18n="cancel">Отмена</button>
+      <button class="form-btn" id="edit-save-btn" style="flex:2" data-i18n="save">Сохранить</button>
+    </div>
+    <button class="form-btn danger" id="edit-delete-btn" style="margin-top:8px">🗑️ <span data-i18n="deleteProduct">Удалить товар</span></button>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+// i18n — TRANSLATIONS  (UZ / RU / EN)
+// ════════════════════════════════════════════════════════════
+const TRANSLATIONS = {
+  ru: {
+    // Store UI
+    all:              'Все',
+    cart:             'Корзина',
+    clearCart:        'Очистить',
+    total:            'Итого:',
+    placeOrder:       'Оформить заказ',
+    placingOrder:     'Оформляем...',
+    orderPlaced:      'Заказ оформлен!',
+    orderSub:         'Мы свяжемся с вами для подтверждения заказа.',
+    orderNum:         'Заказ',
+    continueShopping: 'Продолжить покупки',
+    outOfStock:       'Нет в наличии',
+    addToCart:        'В корзину',
+    inCartBtn:        '✓ В корзине',
+    cartEmpty:        'Корзина пуста',
+    cartCleared:      'Корзина очищена',
+    addedToCart:      'Добавлено в корзину ✓',
+    noProducts:       'Товары не найдены',
+    loadError:        '⚠️ Ошибка загрузки товаров',
+    serverError:      'Не удалось загрузить товары.\nПроверьте подключение к серверу.',
+    // Admin panel
+    back:             'Назад',
+    adminPanel:       'Панель администратора',
+    adminLogin:       'Вход для администратора',
+    adminLoginSub:    'Введите пароль для доступа к панели управления',
+    enter:            'Войти',
+    wrongPass:        'Неверный пароль',
+    products:         'Товары',
+    categories:       'Категории',
+    orders:           'Заказы',
+    settings:         'Настройки',
+    addProduct:       'Добавить товар',
+    productList:      'Список товаров',
+    name:             'Название',
+    namePlaceholder:  'Например: Футболка Classic',
+    priceSom:         'Цена (сум)',
+    category:         'Категория',
+    categoryPlaceholder: 'Одежда',
+    description:      'Описание',
+    descPlaceholder:  'Краткое описание товара',
+    photoUrl:         'URL фото',
+    addCategory:      'Добавить категорию',
+    categoryName:     'Название категории',
+    currentCategories:'Текущие категории',
+    allOrders:        'Все заказы',
+    loadingOrders:    'Загрузка заказов...',
+    noOrders:         'Заказов пока нет',
+    store:            'Магазин',
+    storeName:        'Название магазина',
+    currency:         'Валюта',
+    bot:              'Бот',
+    ownerChatId:      'Telegram Chat ID владельца',
+    adminKey:         'Admin API Key',
+    saveSettings:     'Сохранить настройки',
+    editProduct:      'Редактировать товар',
+    inStock:          'В наличии',
+    cancel:           'Отмена',
+    save:             'Сохранить',
+    deleteProduct:    'Удалить товар',
+    confirmDelete:    'Удалить этот товар?',
+    productAdded:     'Товар добавлен ✓',
+    productUpdated:   'Товар обновлён ✓',
+    productDeleted:   'Товар удалён',
+    categoryAdded:    'Категория добавлена ✓',
+    settingsSaved:    'Настройки сохранены ✓',
+    statusUpdated:    'Статус обновлён ✓',
+    fillRequired:     'Заполните обязательные поля',
+    error:            'Ошибка',
+    unknown:          'неизвестен',
+    items:            'товаров',
+    statusNew:        'Новый',
+    statusConfirmed:  'Подтверждён',
+    statusDelivered:  'Доставлен',
+    statusCancelled:  'Отменён',
+    noCatsYet:        'Категории появятся после добавления товаров',
+    ordersLoadError:  'Ошибка загрузки заказов',
+  },
+  uz: {
+    all:              'Barchasi',
+    cart:             'Savat',
+    clearCart:        'Tozalash',
+    total:            'Jami:',
+    placeOrder:       'Buyurtma berish',
+    placingOrder:     'Rasmiylashtirilmoqda...',
+    orderPlaced:      'Buyurtma rasmiylashtirildi!',
+    orderSub:         'Buyurtmani tasdiqlash uchun siz bilan bog\'lanamiz.',
+    orderNum:         'Buyurtma',
+    continueShopping: 'Xaridni davom ettirish',
+    outOfStock:       'Sotuvda yo\'q',
+    addToCart:        'Savatga',
+    inCartBtn:        '✓ Savatda',
+    cartEmpty:        'Savat bo\'sh',
+    cartCleared:      'Savat tozalandi',
+    addedToCart:      'Savatga qo\'shildi ✓',
+    noProducts:       'Mahsulotlar topilmadi',
+    loadError:        '⚠️ Mahsulotlarni yuklashda xato',
+    serverError:      'Mahsulotlarni yuklab bo\'lmadi.\nServer ulanishini tekshiring.',
+    back:             'Orqaga',
+    adminPanel:       'Administrator paneli',
+    adminLogin:       'Administrator kirishi',
+    adminLoginSub:    'Boshqaruv paneliga kirish uchun parolni kiriting',
+    enter:            'Kirish',
+    wrongPass:        'Noto\'g\'ri parol',
+    products:         'Mahsulotlar',
+    categories:       'Kategoriyalar',
+    orders:           'Buyurtmalar',
+    settings:         'Sozlamalar',
+    addProduct:       'Mahsulot qo\'shish',
+    productList:      'Mahsulotlar ro\'yxati',
+    name:             'Nomi',
+    namePlaceholder:  'Masalan: Classic Futbolka',
+    priceSom:         'Narxi (so\'m)',
+    category:         'Kategoriya',
+    categoryPlaceholder: 'Kiyim',
+    description:      'Tavsif',
+    descPlaceholder:  'Mahsulot haqida qisqacha',
+    photoUrl:         'Rasm URL',
+    addCategory:      'Kategoriya qo\'shish',
+    categoryName:     'Kategoriya nomi',
+    currentCategories:'Joriy kategoriyalar',
+    allOrders:        'Barcha buyurtmalar',
+    loadingOrders:    'Buyurtmalar yuklanmoqda...',
+    noOrders:         'Hali buyurtmalar yo\'q',
+    store:            'Do\'kon',
+    storeName:        'Do\'kon nomi',
+    currency:         'Valyuta',
+    bot:              'Bot',
+    ownerChatId:      'Egasining Telegram Chat ID',
+    adminKey:         'Admin API kaliti',
+    saveSettings:     'Sozlamalarni saqlash',
+    editProduct:      'Mahsulotni tahrirlash',
+    inStock:          'Mavjud',
+    cancel:           'Bekor qilish',
+    save:             'Saqlash',
+    deleteProduct:    'Mahsulotni o\'chirish',
+    confirmDelete:    'Bu mahsulotni o\'chirmoqchimisiz?',
+    productAdded:     'Mahsulot qo\'shildi ✓',
+    productUpdated:   'Mahsulot yangilandi ✓',
+    productDeleted:   'Mahsulot o\'chirildi',
+    categoryAdded:    'Kategoriya qo\'shildi ✓',
+    settingsSaved:    'Sozlamalar saqlandi ✓',
+    statusUpdated:    'Status yangilandi ✓',
+    fillRequired:     'Majburiy maydonlarni to\'ldiring',
+    error:            'Xato',
+    unknown:          'noma\'lum',
+    items:            'mahsulot',
+    statusNew:        'Yangi',
+    statusConfirmed:  'Tasdiqlangan',
+    statusDelivered:  'Yetkazilgan',
+    statusCancelled:  'Bekor qilingan',
+    noCatsYet:        'Kategoriyalar mahsulot qo\'shilgandan keyin paydo bo\'ladi',
+    ordersLoadError:  'Buyurtmalarni yuklashda xato',
+  },
+  en: {
+    all:              'All',
+    cart:             'Cart',
+    clearCart:        'Clear',
+    total:            'Total:',
+    placeOrder:       'Place Order',
+    placingOrder:     'Placing order...',
+    orderPlaced:      'Order Placed!',
+    orderSub:         'We\'ll contact you to confirm your order.',
+    orderNum:         'Order',
+    continueShopping: 'Continue Shopping',
+    outOfStock:       'Out of Stock',
+    addToCart:        'Add to Cart',
+    inCartBtn:        '✓ In Cart',
+    cartEmpty:        'Cart is empty',
+    cartCleared:      'Cart cleared',
+    addedToCart:      'Added to cart ✓',
+    noProducts:       'No products found',
+    loadError:        '⚠️ Failed to load products',
+    serverError:      'Could not load products.\nCheck server connection.',
+    back:             'Back',
+    adminPanel:       'Admin Panel',
+    adminLogin:       'Admin Login',
+    adminLoginSub:    'Enter password to access the admin panel',
+    enter:            'Login',
+    wrongPass:        'Wrong password',
+    products:         'Products',
+    categories:       'Categories',
+    orders:           'Orders',
+    settings:         'Settings',
+    addProduct:       'Add Product',
+    productList:      'Product List',
+    name:             'Name',
+    namePlaceholder:  'e.g. Classic T-Shirt',
+    priceSom:         'Price (sum)',
+    category:         'Category',
+    categoryPlaceholder: 'Clothing',
+    description:      'Description',
+    descPlaceholder:  'Short product description',
+    photoUrl:         'Photo URL',
+    addCategory:      'Add Category',
+    categoryName:     'Category Name',
+    currentCategories:'Current Categories',
+    allOrders:        'All Orders',
+    loadingOrders:    'Loading orders...',
+    noOrders:         'No orders yet',
+    store:            'Store',
+    storeName:        'Store Name',
+    currency:         'Currency',
+    bot:              'Bot',
+    ownerChatId:      'Owner Telegram Chat ID',
+    adminKey:         'Admin API Key',
+    saveSettings:     'Save Settings',
+    editProduct:      'Edit Product',
+    inStock:          'In Stock',
+    cancel:           'Cancel',
+    save:             'Save',
+    deleteProduct:    'Delete Product',
+    confirmDelete:    'Delete this product?',
+    productAdded:     'Product added ✓',
+    productUpdated:   'Product updated ✓',
+    productDeleted:   'Product deleted',
+    categoryAdded:    'Category added ✓',
+    settingsSaved:    'Settings saved ✓',
+    statusUpdated:    'Status updated ✓',
+    fillRequired:     'Please fill in required fields',
+    error:            'Error',
+    unknown:          'unknown',
+    items:            'items',
+    statusNew:        'New',
+    statusConfirmed:  'Confirmed',
+    statusDelivered:  'Delivered',
+    statusCancelled:  'Cancelled',
+    noCatsYet:        'Categories will appear after adding products',
+    ordersLoadError:  'Failed to load orders',
+  },
+};
+
+// Current language — priority: 1) saved preference, 2) store default, 3) Telegram lang, 4) ru
+let currentLang = (() => {
+  // Check locally saved preference first
+  try { const saved = localStorage.getItem('lang'); if (saved) return saved; } catch(_) {}
+  // Telegram user language
+  const tgLang = window.Telegram?.WebApp?.initDataUnsafe?.user?.language_code || '';
+  if (tgLang.startsWith('uz')) return 'uz';
+  if (tgLang.startsWith('en')) return 'en';
+  return 'ru';
+})();
+
+// Translation helper
+function t(key) {
+  return TRANSLATIONS[currentLang]?.[key] ?? TRANSLATIONS.ru[key] ?? key;
+}
+
+// Apply translations to all [data-i18n] elements
+function applyTranslations() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = t(el.dataset.i18n);
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    el.placeholder = t(el.dataset.i18nPlaceholder);
+  });
+  // Update language switcher active state
+  document.querySelectorAll('.lang-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.lang === currentLang);
+  });
+  // Update html lang attribute
+  document.documentElement.lang = currentLang;
+}
+
+// Switch language
+function setLang(lang) {
+  currentLang = lang;
+  applyTranslations();
+  // Re-render dynamic content that contains translated strings
+  renderCategories();
+  renderProducts(currentCat === 'all' ? products : products.filter(p => p.category === currentCat));
+  if (Object.keys(cart).length > 0) renderCartItems();
+  if (adminLoggedIn) {
+    loadAdminProducts();
+    renderAdminCats();
+  }
+  // Save preference
+  try { localStorage.setItem('lang', lang); } catch(_) {}
+}
+
+// STORE CONFIG — REPLACE values here to rebrand quickly
+// ════════════════════════════════════════════════════════════
+const CONFIG = {
+  // REPLACE: Your backend URL (local dev or deployed)
+  serverUrl:    '',                    // empty = same origin (recommended)
+  // REPLACE: Admin password shown in admin login screen
+  adminPassword: 'Admin2025!',
+  // REPLACE: Admin API key (must match server.js)
+  adminApiKey:   'super-secret-admin-key-2025',
+  // REPLACE: Store display name
+  storeName:    'Telegram Shop',
+  // REPLACE: Currency label
+  currency:     'сум',
+};
+
+// ════════════════════════════════════════════════════════════
+// TELEGRAM MINI APP INIT
+// ════════════════════════════════════════════════════════════
+const tg = window.Telegram?.WebApp;
+if (tg) {
+  tg.ready();
+  tg.expand();
+  // Apply Telegram theme header color
+  document.documentElement.style.setProperty('--tg-bg', tg.themeParams?.bg_color || '#ffffff');
+  document.documentElement.style.setProperty('--tg-secondary-bg', tg.themeParams?.secondary_bg_color || '#f4f4f5');
+  document.documentElement.style.setProperty('--tg-text', tg.themeParams?.text_color || '#111111');
+  document.documentElement.style.setProperty('--tg-hint', tg.themeParams?.hint_color || '#888888');
+  document.documentElement.style.setProperty('--tg-button', tg.themeParams?.button_color || '#2563eb');
+  document.documentElement.style.setProperty('--tg-button-text', tg.themeParams?.button_text_color || '#ffffff');
+  tg.setHeaderColor(tg.themeParams?.bg_color || '#ffffff');
+}
+
+// Current user info from Telegram
+const tgUser = tg?.initDataUnsafe?.user || { id: 'test_user', username: 'test', first_name: 'Тест' };
+
+// ════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════
+let products     = [];
+let cart         = {};    // { productId: quantity }
+let currentCat   = 'all';
+let adminLoggedIn = false;
+let editAvailable = true;
+let customCategories = [];
+
+// ════════════════════════════════════════════════════════════
+// API HELPERS
+// ════════════════════════════════════════════════════════════
+const BASE = CONFIG.serverUrl;
+
+async function api(method, path, body = null, adminAuth = false) {
+  const headers = { 'Content-Type': 'application/json' };
+  // Use JWT token if available (owner logged into dashboard), else fall back to admin key
+  const jwt = localStorage.getItem('token');
+  if (adminAuth) {
+    if (jwt) headers['Authorization'] = `Bearer ${jwt}`;
+    else headers['X-Admin-Key'] = CONFIG.adminApiKey;
+  }
+  const opts = { method, headers };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(BASE + path, opts);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// ════════════════════════════════════════════════════════════
+// FORMAT HELPERS
+// ════════════════════════════════════════════════════════════
+function fmt(n) {
+  return Number(n).toLocaleString('ru-RU') + ' ' + CONFIG.currency;
+}
+
+function fmtNum(n) {
+  return Number(n).toLocaleString('ru-RU');
+}
+
+// ════════════════════════════════════════════════════════════
+// LOAD PRODUCTS
+// ════════════════════════════════════════════════════════════
+async function loadProducts() {
+  try {
+    // Load config first to get defaultLang (only if user hasn't manually picked a language)
+    try {
+      const cfg = await api('GET', '/store/' + OWNER_ID + '/config');
+      if (cfg.defaultLang) {
+        // Only apply store default if user hasn't manually saved a preference
+        const saved = localStorage.getItem('lang');
+        if (!saved) {
+          currentLang = cfg.defaultLang;
+          applyTranslations();
+        }
+      }
+    } catch(_) {}
+    products = await api('GET', '/store/' + OWNER_ID + '/products');
+    renderCategories();
+    renderProducts(products);
+  } catch (e) {
+    showToast(t('loadError'));
+    console.error(e);
+    document.getElementById('products-grid').innerHTML = '';
+    document.getElementById('products-grid').innerHTML =
+      `<div style="grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--tg-hint)"><div style="font-size:48px">⚠️</div><p style="margin-top:12px">${t('serverError').replace('\n','<br>')}</p></div>`;
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// RENDER CATEGORIES
+// ════════════════════════════════════════════════════════════
+function renderCategories() {
+  const cats = ['all', ...new Set(products.map(p => p.category)), ...customCategories.filter(c =>
+    !products.find(p => p.category === c))];
+
+  const container = document.getElementById('categories');
+  container.innerHTML = '';
+
+  cats.forEach(cat => {
+    const btn = document.createElement('button');
+    btn.className = 'cat-btn' + (cat === currentCat ? ' active' : '');
+    btn.dataset.cat = cat;
+    btn.textContent = cat === 'all' ? t('all') : cat;
+    btn.addEventListener('click', () => {
+      currentCat = cat;
+      document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const filtered = cat === 'all' ? products : products.filter(p => p.category === cat);
+      renderProducts(filtered);
+    });
+    container.appendChild(btn);
+  });
+
+  // Update datalist for admin
+  const dl = document.getElementById('cats-datalist');
+  if (dl) {
+    dl.innerHTML = '';
+    [...new Set(products.map(p => p.category))].forEach(c => {
+      const opt = document.createElement('option'); opt.value = c; dl.appendChild(opt);
+    });
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// RENDER PRODUCTS GRID
+// ════════════════════════════════════════════════════════════
+function renderProducts(list) {
+  const grid = document.getElementById('products-grid');
+  grid.innerHTML = '';
+
+  if (!list || list.length === 0) {
+    grid.innerHTML = `
+      <div style="grid-column:1/-1;text-align:center;padding:60px 20px;">
+        <div style="font-size:52px;margin-bottom:12px">🔍</div>
+        <p style="color:var(--tg-hint);font-size:15px">${t('noProducts')}</p>
+      </div>`;
+    return;
+  }
+
+  list.forEach(p => {
+    const inCart = cart[p.id] > 0;
+    const card = document.createElement('div');
+    card.className = 'product-card';
+    card.dataset.id = p.id;
+
+    card.innerHTML = `
+      <div class="product-img-wrap">
+        <img src="${escHtml(p.image)}" alt="${escHtml(p.name)}" loading="lazy"
+             onerror="this.src='https://placehold.co/400x400/cccccc/888888?text=📦'" />
+        ${!p.available ? `<div class="out-badge">${t('outOfStock')}</div>` : ''}
+      </div>
+      <div class="product-info">
+        <div class="product-name">${escHtml(p.name)}</div>
+        <div class="product-price">${fmtNum(p.price)} ${CONFIG.currency}</div>
+        <button class="add-btn ${inCart ? 'in-cart-btn' : ''}"
+                ${!p.available ? 'disabled' : ''}
+                data-id="${p.id}">
+          ${!p.available ? t('outOfStock') : inCart ? `${t('inCartBtn')} (${cart[p.id]})` : t('addToCart')}
+        </button>
+      </div>`;
+
+    grid.appendChild(card);
+  });
+
+  // Add to cart button handlers
+  grid.querySelectorAll('.add-btn:not([disabled])').forEach(btn => {
+    btn.addEventListener('click', () => addToCart(btn.dataset.id));
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+// CART LOGIC
+// ════════════════════════════════════════════════════════════
+function addToCart(id) {
+  cart[id] = (cart[id] || 0) + 1;
+  updateCartBadge();
+  updateProductButton(id);
+  haptic('light');
+  showToast(t('addedToCart'));
+}
+
+function removeFromCart(id) {
+  delete cart[id];
+  updateCartBadge();
+  updateProductButton(id);
+  renderCartItems();
+}
+
+function changeQty(id, delta) {
+  cart[id] = (cart[id] || 0) + delta;
+  if (cart[id] <= 0) {
+    removeFromCart(id);
+    return;
+  }
+  updateProductButton(id);
+  renderCartItems();
+  updateCartBadge();
+}
+
+function updateCartBadge() {
+  const total = Object.values(cart).reduce((a, b) => a + b, 0);
+  const badge = document.getElementById('cart-count');
+  badge.textContent = total;
+  badge.classList.toggle('visible', total > 0);
+}
+
+function updateProductButton(id) {
+  const btn = document.querySelector(`.add-btn[data-id="${id}"]`);
+  if (!btn) return;
+  const qty = cart[id] || 0;
+  if (qty > 0) {
+    btn.classList.add('in-cart-btn');
+    btn.textContent = `${t('inCartBtn')} (${qty})`;
+  } else {
+    btn.classList.remove('in-cart-btn');
+    btn.textContent = t('addToCart');
+  }
+}
+
+function cartTotal() {
+  return Object.entries(cart).reduce((sum, [id, qty]) => {
+    const p = products.find(p => p.id === id);
+    return sum + (p ? p.price * qty : 0);
+  }, 0);
+}
+
+// ════════════════════════════════════════════════════════════
+// CART SHEET
+// ════════════════════════════════════════════════════════════
+function openCart() {
+  if (Object.keys(cart).length === 0) {
+    showToast(t('cartEmpty'));
+    return;
+  }
+  renderCartItems();
+  document.getElementById('cart-sheet').classList.add('open');
+  document.getElementById('cart-overlay').classList.add('open');
+  haptic('medium');
+}
+
+function closeCart() {
+  document.getElementById('cart-sheet').classList.remove('open');
+  document.getElementById('cart-overlay').classList.remove('open');
+}
+
+function renderCartItems() {
+  const container = document.getElementById('cart-items');
+  container.innerHTML = '';
+
+  const entries = Object.entries(cart).filter(([id, qty]) => qty > 0);
+
+  if (entries.length === 0) {
+    closeCart();
+    return;
+  }
+
+  entries.forEach(([id, qty]) => {
+    const p = products.find(p => p.id === id);
+    if (!p) return;
+
+    const item = document.createElement('div');
+    item.className = 'cart-item';
+    item.innerHTML = `
+      <div class="cart-item-img">
+        <img src="${escHtml(p.image)}" alt="${escHtml(p.name)}"
+             style="width:100%;height:100%;"
+             onerror="this.src='https://placehold.co/56x56/cccccc/888?text=📦'" />
+      </div>
+      <div class="cart-item-info">
+        <div class="cart-item-name">${escHtml(p.name)}</div>
+        <div class="cart-item-price">${fmtNum(p.price)} ${CONFIG.currency}</div>
+      </div>
+      <div class="qty-controls">
+        <button class="qty-btn minus" data-id="${id}" data-delta="-1">−</button>
+        <span class="qty-num">${qty}</span>
+        <button class="qty-btn plus" data-id="${id}" data-delta="1">+</button>
+      </div>`;
+
+    container.appendChild(item);
+  });
+
+  container.querySelectorAll('.qty-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      changeQty(btn.dataset.id, parseInt(btn.dataset.delta));
+      haptic('selection');
+    });
+  });
+
+  document.getElementById('cart-total-price').textContent = fmt(cartTotal());
+}
+
+// ════════════════════════════════════════════════════════════
+// PLACE ORDER
+// ════════════════════════════════════════════════════════════
+async function placeOrder() {
+  if (Object.keys(cart).length === 0) return;
+
+  const orderBtn = document.getElementById('order-btn');
+  orderBtn.textContent = t('placingOrder');
+  orderBtn.disabled = true;
+
+  const items = Object.entries(cart).map(([id, qty]) => ({ productId: id, quantity: qty }));
+  const customer = {
+    id: String(tgUser.id),
+    username: tgUser.username || '',
+    firstName: tgUser.first_name || '',
+  };
+
+  try {
+    const result = await api('POST', '/store/' + OWNER_ID + '/orders', { items, customer });
+    cart = {};
+    updateCartBadge();
+    closeCart();
+    renderProducts(currentCat === 'all' ? products : products.filter(p => p.category === currentCat));
+
+    // Show success screen
+    document.getElementById('success-order-num').textContent = `${t('orderNum')} #${result.orderId}`;
+    document.getElementById('success-screen').classList.add('visible');
+
+    haptic('success');
+
+    // Also notify via web_app_data if inside Telegram
+    tg?.sendData?.(JSON.stringify({ type: 'order_placed', orderId: result.orderId }));
+  } catch (e) {
+    showToast(`⚠️ ${t('error')}: ` + e.message);
+    console.error(e);
+  } finally {
+    orderBtn.textContent = t('placeOrder');
+    orderBtn.disabled = false;
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// ADMIN PANEL
+// ════════════════════════════════════════════════════════════
+let adminLongPressTimer = null;
+
+function openAdmin() {
+  document.getElementById('admin-panel').classList.add('visible');
+  haptic('medium');
+}
+
+function closeAdmin() {
+  document.getElementById('admin-panel').classList.remove('visible');
+  adminLoggedIn = false;
+  document.getElementById('admin-login').style.display = 'flex';
+  document.getElementById('admin-tabs-wrap').style.display = 'none';
+}
+
+function loginAdmin() {
+  const pass = document.getElementById('admin-pass-input').value;
+  const err  = document.getElementById('admin-login-error');
+  // REPLACE: change admin password here or in CONFIG above
+  if (pass === CONFIG.adminPassword) {
+    adminLoggedIn = true;
+    document.getElementById('admin-login').style.display = 'none';
+    const wrap = document.getElementById('admin-tabs-wrap');
+    wrap.style.display = 'flex';
+    wrap.style.flexDirection = 'column';
+    wrap.style.flex = '1';
+    wrap.style.overflow = 'hidden';
+    err.style.display = 'none';
+    loadAdminProducts();
+    loadAdminOrders();
+    renderAdminCats();
+    haptic('success');
+  } else {
+    err.style.display = 'block';
+    document.getElementById('admin-pass-input').value = '';
+    haptic('error');
+  }
+}
+
+// ── Admin: Products ─────────────────────────────────────────
+function loadAdminProducts() {
+  const list = document.getElementById('admin-products-list');
+  list.innerHTML = '';
+  products.forEach(p => {
+    const row = document.createElement('div');
+    row.className = 'admin-product-row';
+    row.innerHTML = `
+      <img src="${escHtml(p.image)}" alt="" onerror="this.src='https://placehold.co/48x48/ccc/888'" />
+      <div class="admin-product-info">
+        <div class="admin-product-name">${escHtml(p.name)}</div>
+        <div class="admin-product-meta">${escHtml(p.category)} · ${fmtNum(p.price)} ${CONFIG.currency} · ${p.available ? `✅ ${t('inStock')}` : `❌ ${t('outOfStock')}`}</div>
+      </div>
+      <div class="row-actions">
+        <button class="icon-btn" data-edit="${p.id}" title="Редактировать">✏️</button>
+      </div>`;
+    list.appendChild(row);
+  });
+
+  list.querySelectorAll('[data-edit]').forEach(btn => {
+    btn.addEventListener('click', () => openEditModal(btn.dataset.edit));
+  });
+}
+
+async function addProduct() {
+  const name     = document.getElementById('p-name').value.trim();
+  const price    = document.getElementById('p-price').value;
+  const category = document.getElementById('p-category').value.trim();
+  const desc     = document.getElementById('p-desc').value.trim();
+  const image    = document.getElementById('p-image').value.trim();
+
+  if (!name || !price || !category) { showToast(t('fillRequired')); return; }
+
+  try {
+    const result = await api('POST', '/api/products', { name, price, category, description: desc, image }, true);
+    products.push(result.product);
+    renderProducts(currentCat === 'all' ? products : products.filter(p => p.category === currentCat));
+    renderCategories();
+    loadAdminProducts();
+    renderAdminCats();
+    document.getElementById('p-name').value = '';
+    document.getElementById('p-price').value = '';
+    document.getElementById('p-category').value = '';
+    document.getElementById('p-desc').value = '';
+    document.getElementById('p-image').value = '';
+    showToast(t('productAdded'));
+    haptic('success');
+  } catch (e) { showToast(`${t('error')}: ` + e.message); }
+}
+
+function openEditModal(id) {
+  const p = products.find(p => p.id === id);
+  if (!p) return;
+  document.getElementById('edit-id').value     = p.id;
+  document.getElementById('edit-name').value   = p.name;
+  document.getElementById('edit-price').value  = p.price;
+  document.getElementById('edit-cat').value    = p.category;
+  document.getElementById('edit-desc').value   = p.description || '';
+  document.getElementById('edit-image').value  = p.image || '';
+  editAvailable = p.available;
+  const tog = document.getElementById('edit-available-toggle');
+  tog.className = 'toggle' + (p.available ? ' on' : '');
+  document.getElementById('edit-overlay').style.display = 'flex';
+}
+
+function closeEditModal() {
+  document.getElementById('edit-overlay').style.display = 'none';
+}
+
+async function saveEdit() {
+  const id = document.getElementById('edit-id').value;
+  const body = {
+    name:      document.getElementById('edit-name').value.trim(),
+    price:     document.getElementById('edit-price').value,
+    category:  document.getElementById('edit-cat').value.trim(),
+    description: document.getElementById('edit-desc').value.trim(),
+    image:     document.getElementById('edit-image').value.trim(),
+    available: editAvailable,
+  };
+  try {
+    const result = await api('PUT', `/api/products/${id}`, body, true);
+    const idx = products.findIndex(p => p.id === id);
+    if (idx !== -1) products[idx] = result.product;
+    closeEditModal();
+    renderProducts(currentCat === 'all' ? products : products.filter(p => p.category === currentCat));
+    renderCategories();
+    loadAdminProducts();
+    showToast(t('productUpdated'));
+  } catch (e) { showToast(`${t('error')}: ` + e.message); }
+}
+
+async function deleteProduct() {
+  const id = document.getElementById('edit-id').value;
+  if (!confirm(t('confirmDelete'))) return;
+  try {
+    await api('DELETE', `/api/products/${id}`, null, true);
+    products = products.filter(p => p.id !== id);
+    closeEditModal();
+    renderProducts(currentCat === 'all' ? products : products.filter(p => p.category === currentCat));
+    renderCategories();
+    loadAdminProducts();
+    showToast(t('productDeleted'));
+  } catch (e) { showToast(`${t('error')}: ` + e.message); }
+}
+
+// ── Admin: Categories ───────────────────────────────────────
+function renderAdminCats() {
+  const uniqueCats = [...new Set(products.map(p => p.category)), ...customCategories.filter(c =>
+    !products.find(p => p.category === c))];
+  const list = document.getElementById('admin-cats-list');
+  if (!list) return;
+  list.innerHTML = '';
+  if (uniqueCats.length === 0) {
+    list.innerHTML = `<p style="color:var(--tg-hint);font-size:14px">${t('noCatsYet')}</p>`;
+    return;
+  }
+  uniqueCats.forEach(cat => {
+    const row = document.createElement('div');
+    row.className = 'cat-admin-row';
+    row.innerHTML = `
+      <span class="cat-name-text">${escHtml(cat)}</span>
+      <span style="font-size:12px;color:var(--tg-hint)">${products.filter(p=>p.category===cat).length} ${t('items')}</span>`;
+    list.appendChild(row);
+  });
+}
+
+function addCategory() {
+  const input = document.getElementById('new-cat-input');
+  const name  = input.value.trim();
+  if (!name) return;
+  if (!customCategories.includes(name) && !products.find(p => p.category === name)) {
+    customCategories.push(name);
+  }
+  input.value = '';
+  renderCategories();
+  renderAdminCats();
+  showToast(t('categoryAdded'));
+}
+
+// ── Admin: Orders ───────────────────────────────────────────
+async function loadAdminOrders() {
+  const list = document.getElementById('admin-orders-list');
+  try {
+    const orders = await api('GET', '/api/orders', null, true);
+    list.innerHTML = '';
+    if (orders.length === 0) {
+      list.innerHTML = `<p style="color:var(--tg-hint);text-align:center;padding:24px">${t('noOrders')}</p>`;
+      return;
+    }
+    orders.forEach(o => {
+      const row = document.createElement('div');
+      row.className = 'admin-order-row';
+      const statusLabel = {
+        new: t('statusNew'), confirmed: t('statusConfirmed'),
+        delivered: t('statusDelivered'), cancelled: t('statusCancelled')
+      };
+      const items = o.items.map(i => `${i.name} ×${i.quantity}`).join(', ');
+      row.innerHTML = `
+        <div class="order-row-header">
+          <span class="order-id">${t('orderNum')} #${o.id}</span>
+          <span class="order-status status-${o.status}">${statusLabel[o.status] || o.status}</span>
+        </div>
+        <div class="order-customer">👤 @${o.customer?.username || t('unknown')} · ${o.customer?.firstName || ''}</div>
+        <div class="order-items-preview">${items}</div>
+        <div class="order-total-row">
+          <span class="order-total-val">${fmt(o.total)}</span>
+          <select class="status-select" data-oid="${o.id}">
+            <option value="new"       ${o.status==='new'       ?'selected':''}>${t('statusNew')}</option>
+            <option value="confirmed" ${o.status==='confirmed' ?'selected':''}>${t('statusConfirmed')}</option>
+            <option value="delivered" ${o.status==='delivered' ?'selected':''}>${t('statusDelivered')}</option>
+            <option value="cancelled" ${o.status==='cancelled' ?'selected':''}>${t('statusCancelled')}</option>
+          </select>
+        </div>`;
+      list.appendChild(row);
+    });
+
+    list.querySelectorAll('.status-select').forEach(sel => {
+      sel.addEventListener('change', async () => {
+        try {
+          await api('PATCH', `/api/orders/${sel.dataset.oid}/status`, { status: sel.value }, true);
+          showToast(t('statusUpdated'));
+        } catch (e) { showToast(`${t('error')}: ` + e.message); }
+      });
+    });
+  } catch (e) {
+    list.innerHTML = `<p style="color:var(--badge-color);text-align:center;padding:24px">${t('ordersLoadError')}</p>`;
+  }
+}
+
+// ── Admin: Settings ─────────────────────────────────────────
+async function saveSettings() {
+  const body = {
+    storeName:    document.getElementById('s-name').value.trim()    || CONFIG.storeName,
+    currency:     document.getElementById('s-currency').value.trim() || CONFIG.currency,
+    ownerChatId:  document.getElementById('s-owner-id').value.trim(),
+    adminApiKey:  document.getElementById('s-api-key').value.trim() || CONFIG.adminApiKey,
+  };
+  try {
+    await api('POST', '/api/store-config', body, true);
+    CONFIG.storeName  = body.storeName;
+    CONFIG.currency   = body.currency;
+    if (body.adminApiKey) CONFIG.adminApiKey = body.adminApiKey;
+    document.getElementById('store-name').innerHTML = body.storeName.replace(/(Shop|Магазин|Store)/i,
+      m => `<span>${m}</span>`);
+    showToast(t('settingsSaved'));
+  } catch (e) { showToast(`${t('error')}: ` + e.message); }
+}
+
+// ════════════════════════════════════════════════════════════
+// HAPTIC FEEDBACK
+// ════════════════════════════════════════════════════════════
+function haptic(type) {
+  try {
+    if (type === 'light')     tg?.HapticFeedback?.impactOccurred('light');
+    else if (type === 'medium') tg?.HapticFeedback?.impactOccurred('medium');
+    else if (type === 'success') tg?.HapticFeedback?.notificationOccurred('success');
+    else if (type === 'error')   tg?.HapticFeedback?.notificationOccurred('error');
+    else if (type === 'selection') tg?.HapticFeedback?.selectionChanged();
+  } catch (_) {}
+}
+
+// ════════════════════════════════════════════════════════════
+// TOAST
+// ════════════════════════════════════════════════════════════
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ════════════════════════════════════════════════════════════
+// XSS SAFE HTML
+// ════════════════════════════════════════════════════════════
+function escHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ════════════════════════════════════════════════════════════
+// EVENT LISTENERS
+// ════════════════════════════════════════════════════════════
+
+// Language switcher
+document.querySelectorAll('.lang-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.dataset.lang !== currentLang) {
+      setLang(btn.dataset.lang);
+      haptic('selection');
+    }
+  });
+});
+
+// Cart open/close
+document.getElementById('cart-btn').addEventListener('click', openCart);
+document.getElementById('cart-overlay').addEventListener('click', closeCart);
+
+// Cart clear
+document.getElementById('cart-clear-btn').addEventListener('click', () => {
+  cart = {};
+  updateCartBadge();
+  closeCart();
+  renderProducts(currentCat === 'all' ? products : products.filter(p => p.category === currentCat));
+  showToast(t('cartCleared'));
+});
+
+// Order button
+document.getElementById('order-btn').addEventListener('click', placeOrder);
+
+// Back to shop
+document.getElementById('back-to-shop-btn').addEventListener('click', () => {
+  document.getElementById('success-screen').classList.remove('visible');
+});
+
+// Admin — long press on store name
+const storeName = document.getElementById('store-name');
+storeName.addEventListener('pointerdown', () => {
+  adminLongPressTimer = setTimeout(() => { openAdmin(); }, 800);
+});
+storeName.addEventListener('pointerup',   () => clearTimeout(adminLongPressTimer));
+storeName.addEventListener('pointerleave',() => clearTimeout(adminLongPressTimer));
+storeName.addEventListener('contextmenu', e => { e.preventDefault(); openAdmin(); });
+
+// Admin login
+document.getElementById('admin-login-btn').addEventListener('click', loginAdmin);
+document.getElementById('admin-pass-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') loginAdmin();
+});
+
+// Admin back
+document.getElementById('admin-back-btn').addEventListener('click', closeAdmin);
+
+// Admin tabs
+document.querySelectorAll('.admin-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.admin-content').forEach(c => c.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    if (tab.dataset.tab === 'orders') loadAdminOrders();
+  });
+});
+
+// Admin: add product
+document.getElementById('add-product-btn').addEventListener('click', addProduct);
+
+// Admin: add category
+document.getElementById('add-cat-btn').addEventListener('click', addCategory);
+
+// Admin: settings save
+document.getElementById('save-settings-btn').addEventListener('click', saveSettings);
+
+// Edit modal
+document.getElementById('edit-cancel-btn').addEventListener('click', closeEditModal);
+document.getElementById('edit-save-btn').addEventListener('click', saveEdit);
+document.getElementById('edit-delete-btn').addEventListener('click', deleteProduct);
+document.getElementById('edit-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('edit-overlay')) closeEditModal();
+});
+document.getElementById('edit-available-toggle').addEventListener('click', function() {
+  editAvailable = !editAvailable;
+  this.className = 'toggle' + (editAvailable ? ' on' : '');
+});
+
+// ════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════
+// Try to restore saved language preference
+try { const saved = localStorage.getItem('lang'); if (saved) currentLang = saved; } catch(_) {}
+applyTranslations();
+loadProducts();
+</script>
+</body>
+</html>
