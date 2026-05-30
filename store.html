@@ -1119,6 +1119,10 @@ function setLang(lang) {
   try { localStorage.setItem('lang', lang); } catch(_) {}
 }
 
+// ── SAAS: read owner ID from URL param
+const OWNER_ID = new URLSearchParams(location.search).get("owner") || "";
+if (!OWNER_ID) document.body.innerHTML = "<div style=\"text-align:center;padding:60px;font-family:sans-serif\"><h2>⚠️ Магазин не найден</h2><p>Неверная ссылка на магазин.</p></div>";
+
 // STORE CONFIG — REPLACE values here to rebrand quickly
 // ════════════════════════════════════════════════════════════
 const CONFIG = {
