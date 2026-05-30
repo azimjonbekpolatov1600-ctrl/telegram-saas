@@ -140,25 +140,28 @@ function generateOwnerToken(owner) {
 
 // ─── POLLING LOOP — check for new owners every 30s ────────
 async function syncBots() {
-  const owners = db.owners.getAll();
+  try {
+    const owners = await db.owners.getAll();
 
-  for (const owner of owners) {
-    if (!owner.active) {
-      // Stop bot if owner was deactivated
-      stopBotForOwner(owner.id);
-      continue;
+    for (const owner of owners) {
+      if (!owner.active) {
+        stopBotForOwner(owner.id);
+        continue;
+      }
+      const cfg = await db.storeConfig.get(owner.id);
+      if (cfg.botToken && cfg.ownerChatId) {
+        startBotForOwner(owner, cfg);
+      }
     }
-    const cfg = db.storeConfig.get(owner.id);
-    if (cfg.botToken && cfg.ownerChatId) {
-      startBotForOwner(owner, cfg);
-    }
-  }
 
-  // Stop bots for deleted owners
-  for (const [ownerId] of runningBots) {
-    if (!owners.find(o => o.id === ownerId)) {
-      stopBotForOwner(ownerId);
+    // Stop bots for deleted owners
+    for (const [ownerId] of runningBots) {
+      if (!owners.find(o => o.id === ownerId)) {
+        stopBotForOwner(ownerId);
+      }
     }
+  } catch (e) {
+    console.error('syncBots error:', e.message);
   }
 }
 
