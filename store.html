@@ -628,7 +628,7 @@
 
 <!-- ───────────── HEADER ───────────── -->
 <div id="header">
-  <!-- Long-press store name to open admin -->
+  <!-- Long-press store name to open admin panel (in-store admin) -->
   <div id="store-name">Telegram <span>Shop</span></div>
   <!-- Language switcher -->
   <div id="lang-switcher" aria-label="Language">
@@ -636,6 +636,17 @@
     <button class="lang-btn" data-lang="uz">UZ</button>
     <button class="lang-btn" data-lang="en">EN</button>
   </div>
+  <!-- Admin dashboard shortcut (only visible to logged-in owners) -->
+  <button id="dashboard-btn" aria-label="Dashboard" style="
+    display:none;
+    background:var(--tg-secondary-bg);
+    border-radius:10px;
+    padding:7px 10px;
+    font-size:16px;
+    border:none;cursor:pointer;
+    transition:transform 0.2s;
+    flex-shrink:0;
+  " onclick="openDashboard()" title="Admin Dashboard">⚙️</button>
   <button id="cart-btn" aria-label="Cart">
     <span id="cart-icon">🛒</span>
     <span id="cart-count">0</span>
@@ -1852,6 +1863,28 @@ document.getElementById('edit-available-toggle').addEventListener('click', funct
 // Try to restore saved language preference
 try { const saved = localStorage.getItem('lang'); if (saved) currentLang = saved; } catch(_) {}
 applyTranslations();
+
+// Show admin dashboard button if owner is logged in
+(function() {
+  try {
+    const token = localStorage.getItem('token');
+    if (token) {
+      const btn = document.getElementById('dashboard-btn');
+      if (btn) btn.style.display = 'block';
+    }
+  } catch(_) {}
+})();
+
+function openDashboard() {
+  const dashUrl = location.origin + '/dashboard.html';
+  // Open in new tab (works in browser), or via Telegram if inside Mini App
+  if (window.Telegram?.WebApp) {
+    window.Telegram.WebApp.openLink(dashUrl);
+  } else {
+    window.open(dashUrl, '_blank');
+  }
+}
+
 loadProducts();
 </script>
 </body>
